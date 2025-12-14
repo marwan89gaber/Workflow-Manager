@@ -1,0 +1,41 @@
+/* 
+====================
+css/notifications.css
+====================
+*/
+
+.notification-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    border-bottom: 1px solid var(--light);
+    transition: var(--transition);
+}
+
+.notification-item:hover {
+    background: rgba(0, 0, 0, 0.02);
+}
+
+.notification-item.unread {
+    background: rgba(0, 123, 255, 0.05);
+    border-left: 3px solid var(--primary);
+}
+
+.notification-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.notification-type-badge {
+    display: inline-block;
+    padding: 0.25rem 0.5rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.75rem;
+    margin-right: 0.5rem;
+}
+
+.notification-icon {
+    font-size: 1.5rem;
+    margin-right: 1rem;
+}

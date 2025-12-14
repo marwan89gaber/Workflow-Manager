@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reports - WorkFlow Manager</title>
+    <link rel="stylesheet" href="../css/global.css">
+    <style>
+        .reports-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .report-card {
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .report-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .report-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .chart-container {
+            height: 300px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--light);
+            border-radius: var(--radius-md);
+            margin: 1rem 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container"></div>
+
+    <script src="../js/config.js"></script>
+    <script src="../js/auth.js"></script>
+    <script src="../js/api.js"></script>
+    <script src="../js/utils.js"></script>
+    <script src="../js/components.js"></script>
+    <script src="../js/reports.js"></script>
+    <script>
+        initReports();
+    </script>
+</body>
+</html>

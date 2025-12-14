@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task Board - WorkFlow Manager</title>
+    <link rel="stylesheet" href="../css/global.css">
+    <style>
+        .board-container {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .board-column {
+            background: var(--light);
+            border-radius: var(--radius-md);
+            padding: 1rem;
+            min-height: 500px;
+        }
+
+        .board-column-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid var(--secondary);
+        }
+
+        .board-column-title {
+            font-weight: bold;
+            font-size: 1.125rem;
+        }
+
+        .board-column-count {
+            background: var(--secondary);
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 12px;
+            font-size: 0.875rem;
+        }
+
+        .task-card {
+            background: white;
+            padding: 1rem;
+            border-radius: var(--radius-md);
+            margin-bottom: 1rem;
+            cursor: grab;
+            box-shadow: var(--shadow-sm);
+            transition: var(--transition);
+        }
+
+        .task-card:hover {
+            box-shadow: var(--shadow-md);
+            transform: translateY(-2px);
+        }
+
+        .task-card.dragging {
+            opacity: 0.5;
+            cursor: grabbing;
+        }
+
+        .board-column.drag-over {
+            background: rgba(0, 123, 255, 0.1);
+        }
+
+        @media (max-width: 1200px) {
+            .board-container {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .board-container {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container"></div>
+
+    <script src="../js/config.js"></script>
+    <script src="../js/auth.js"></script>
+    <script src="../js/api.js"></script>
+    <script src="../js/utils.js"></script>
+    <script src="../js/components.js"></script>
+    <script src="../js/task-board.js"></script>
+    <script>
+        initTaskBoard();
+    </script>
+</body>
+</html>
