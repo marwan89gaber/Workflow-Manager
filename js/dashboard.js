@@ -56,15 +56,26 @@ async function loadDashboardData() {
     try {
         const user = Auth.getUser();
         
-        const [stats, tasks, news] = await Promise.all([
+        console.log('📍 Loading dashboard for user:', user.user_id);
+        
+        const [dashboardResponse, tasksResponse, newsResponse] = await Promise.all([
             API.users.getDashboard(user.user_id),
             API.tasks.getByUser(user.user_id),
             API.news.getAll()
         ]);
 
-        dashboardData.stats = stats.data;
-        dashboardData.tasks = tasks.slice(0, 5); // Get 5 most recent
-        dashboardData.news = news.slice(0, 5);
+        console.log('📊 Dashboard response:', dashboardResponse);
+        console.log('📋 Tasks response:', tasksResponse);
+        console.log('📰 News response:', newsResponse);
+
+        // Handle different response structures
+        dashboardData.stats = dashboardResponse.data || dashboardResponse;
+        dashboardData.tasks = tasksResponse.data || tasksResponse || [];
+        dashboardData.news = newsResponse.data || newsResponse || [];
+
+        // Get only 5 most recent tasks
+        dashboardData.tasks = dashboardData.tasks.slice(0, 5);
+        dashboardData.news = dashboardData.news.slice(0, 5);
 
         renderStats();
         renderRecentTasks();
@@ -72,8 +83,14 @@ async function loadDashboardData() {
     } catch (error) {
         console.error('Error loading dashboard:', error);
         Utils.showToast('Failed to load dashboard data', 'error');
+        
+        // Show empty state instead of infinite loading
+        document.getElementById('statsGrid').innerHTML = '<p class="text-muted">Failed to load statistics</p>';
+        document.getElementById('recentTasks').innerHTML = '<p class="text-muted">Failed to load tasks</p>';
+        document.getElementById('newsList').innerHTML = '<p class="text-muted">Failed to load news</p>';
     }
 }
+
 
 function renderStats() {
     const stats = dashboardData.stats.stats;

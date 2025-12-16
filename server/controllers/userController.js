@@ -107,7 +107,57 @@ class UserController {
         } catch (err) {
             res.status(500).json({ error: err.message });
         }
+    }static async getUserDashboard(req, res) {
+    const { id } = req.params;
+    const db = DbService.getDbServiceInstance();
+    try {
+        const allUsers = await db.getAllData(); 
+        const user = allUsers.find(user => user.user_id == id);
+        
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        // Get user's tasks
+        const tasks = await db.getTasksByUserId(id);
+        const projects = await db.getUserProjects(id);
+
+        // Calculate statistics
+        const totalTasks = tasks.length;
+        const completedTasks = tasks.filter(t => t.status === 'done').length;
+        const inProgressTasks = tasks.filter(t => t.status === 'in_progress').length;
+        const todoTasks = tasks.filter(t => t.status === 'todo').length;
+        const activeProjects = projects.filter(p => p.status === 'active').length;
+
+        const dashboardData = {
+            user: {
+                user_id: user.user_id,
+                first_name: user.first_name,
+                last_name: user.last_name,
+                email: user.email,
+                role: user.role,
+                department: user.department
+            },
+            stats: {
+                total_tasks: totalTasks,
+                completed_tasks: completedTasks,
+                in_progress_tasks: inProgressTasks,
+                todo_tasks: todoTasks,
+                active_projects: activeProjects
+            },
+            recentActivities: [
+                'Logged in',
+                'Viewed dashboard'
+            ]
+        };
+        
+        console.log('📊 Dashboard data:', dashboardData); // Debug
+        res.json({ data: dashboardData });
+    } catch (err) {
+        console.error('❌ Dashboard error:', err);
+        res.status(500).json({ error: err.message });
     }
+}
 
     // UPDATE - Update user by ID
     static async updateUser(req, res) {
