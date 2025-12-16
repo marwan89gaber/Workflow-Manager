@@ -1,5 +1,6 @@
+const bcrypt = require('bcrypt');  
 const DbService = require('../dbService');
-const AuthMiddleware = require('../middleware/auth');  
+const AuthMiddleware = require('../middleware/auth'); 
 
 class UserController {
 
@@ -33,7 +34,6 @@ class UserController {
     static async login(req, res) {
         const { email, password } = req.body;
         const db = DbService.getDbServiceInstance();
-        const bcrypt = require('bcrypt');
         
         console.log('🔐 Login attempt:', { email, password: password ? '***' : 'UNDEFINED' });
         
