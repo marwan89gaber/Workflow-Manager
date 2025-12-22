@@ -104,13 +104,14 @@ class TaskController {
         const { userId } = req.params;
         const db = DbService.getDbServiceInstance();
         try {
-            const allTasks = await db.getAllTasks();
-            const tasks = allTasks.filter(task => task.assignedTo == userId);
-            res.json({ data: tasks });
-        }catch (err) {
+            const data = await db.getTasksByUserId(userId);
+            //console.log('📋 Retrieved tasks for user:', userId, 'Count:', data.length);
+            res.json({ data: data });
+        } catch (err) {
+            console.error('❌ Error getting tasks for user:', err);
             res.status(500).json({ error: err.message });
         }
-    }         // GET - Get tasks assigned to user
+    }        // GET - Get tasks assigned to user
     static async getOverdueTasks(req, res){
         const db = DbService.getDbServiceInstance();
         try {

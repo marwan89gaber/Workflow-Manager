@@ -93,6 +93,17 @@ class DbService {
         }
     }
 
+    async getUserById(user_id) {
+        try {
+            const query = "SELECT * FROM users WHERE user_id = ?;";
+            const results = await this.query(query, [user_id]);
+            return results[0];
+        } catch (error) {
+            console.log(error);
+            throw error;
+        }
+    }
+
     async updateUserById(id, first_name, last_name, email, department, phone) {
         try {
             const query = `

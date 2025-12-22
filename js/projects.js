@@ -1,297 +1,323 @@
 // ==========================================
-// js/project-detail.js - Project Detail Logic
+// js/projects.js - Projects List Page Logic
 // ==========================================
 
-let projectData = {
-    project: null,
-    tasks: [],
-    members: [],
-    messages: []
-};
+let allProjects = [];
+let filteredProjects = [];
 
-async function initProjectDetail() {
+async function initProjects() {
     await Components.initLayout();
     
-    const params = Utils.getQueryParams();
-    const projectId = params.id;
-
-    if (!projectId) {
-        window.location.href = 'projects.html';
-        return;
-    }
-
     const content = document.getElementById('mainContent');
     content.innerHTML = `
-        <div style="margin-bottom: 2rem;">
-            <a href="projects.html" style="color: var(--primary); text-decoration: none;">
-                ← Back to Projects
-            </a>
+        <div class="page-header" style="margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <h1>Projects</h1>
+                <p class="text-muted">Manage your projects</p>
+            </div>
+            ${Auth.isManagerOrAdmin() ? `
+                <button class="btn btn-primary" onclick="showCreateProjectModal()">
+                    + New Project
+                </button>
+            ` : ''}
         </div>
 
-        <div id="projectHeader">
+        <!-- Filters -->
+        <div class="card">
+            <div class="filters">
+                <input 
+                    type="text" 
+                    class="form-control" 
+                    placeholder="Search projects..." 
+                    id="searchInput"
+                    style="max-width: 300px;"
+                    oninput="filterProjects()"
+                >
+                <select class="form-control" id="statusFilter" onchange="filterProjects()" style="max-width: 200px;">
+                    <option value="">All Statuses</option>
+                    <option value="planning">Planning</option>
+                    <option value="active">Active</option>
+                    <option value="on_hold">On Hold</option>
+                    <option value="completed">Completed</option>
+                    <option value="cancelled">Cancelled</option>
+                </select>
+                <select class="form-control" id="priorityFilter" onchange="filterProjects()" style="max-width: 200px;">
+                    <option value="">All Priorities</option>
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
+                    <option value="critical">Critical</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Projects Grid -->
+        <div id="projectsGrid">
             <div class="loading-spinner"><div class="spinner"></div></div>
         </div>
-
-        <div class="tabs" id="projectTabs">
-            <button class="tab active" onclick="switchTab('overview')">Overview</button>
-            <button class="tab" onclick="switchTab('tasks')">Tasks</button>
-            <button class="tab" onclick="switchTab('members')">Team Members</button>
-            <button class="tab" onclick="switchTab('chat')">Group Chat</button>
-        </div>
-
-        <div id="overview" class="tab-content active"></div>
-        <div id="tasks" class="tab-content"></div>
-        <div id="members" class="tab-content"></div>
-        <div id="chat" class="tab-content"></div>
     `;
 
-    await loadProjectData(projectId);
+    await loadProjects();
 }
 
-async function loadProjectData(projectId) {
+async function loadProjects() {
     try {
-        const [project, tasks, members] = await Promise.all([
-            API.projects.getById(projectId),
-            API.tasks.getByProject(projectId),
-            API.projects.getMembers(projectId)
-        ]);
-
-        projectData.project = project;
-        projectData.tasks = tasks;
-        projectData.members = members;
-
-        renderProjectHeader();
-        renderOverview();
-        renderTasks();
-        renderMembers();
-        await renderChat(projectId);
+        const projects = await API.projects.getAll();
+        allProjects = projects.data || projects;
+        filteredProjects = allProjects;
+        
+        console.log('📁 Loaded projects:', allProjects.length);
+        renderProjects();
     } catch (error) {
-        console.error('Error loading project:', error);
-        Utils.showToast('Failed to load project details', 'error');
+        console.error('Error loading projects:', error);
+        Utils.showToast('Failed to load projects', 'error');
+        document.getElementById('projectsGrid').innerHTML = 
+            '<div class="card"><p class="text-muted text-center" style="padding: 2rem;">Failed to load projects</p></div>';
     }
 }
 
-function renderProjectHeader() {
-    const project = projectData.project;
-    document.getElementById('projectHeader').innerHTML = `
-        <div class="card">
-            <div style="display: flex; justify-content: space-between; align-items: start;">
-                <div style="flex: 1;">
-                    <h1 style="margin: 0 0 0.5rem 0;">${Utils.escapeHtml(project.project_name)}</h1>
-                    <p style="color: var(--secondary); margin-bottom: 1rem;">
-                        ${Utils.escapeHtml(project.description || 'No description')}
-                    </p>
-                    <div style="display: flex; gap: 1rem; align-items: center;">
-                        ${Components.renderStatusBadge(project.status)}
-                        ${Components.renderPriorityBadge(project.priority)}
-                        <span style="color: var(--secondary); font-size: 0.875rem;">
-                            📅 ${Utils.formatDate(project.start_date)} - ${Utils.formatDate(project.end_date)}
-                        </span>
-                    </div>
-                </div>
-                ${Auth.isManagerOrAdmin() ? `
-                    <div style="display: flex; gap: 0.5rem;">
-                        <button class="btn btn-sm btn-primary" onclick="showEditProjectModal()">Edit</button>
-                        <button class="btn btn-sm btn-danger" onclick="deleteProject()">Delete</button>
-                    </div>
-                ` : ''}
-            </div>
-        </div>
-    `;
+function filterProjects() {
+    const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+    const statusFilter = document.getElementById('statusFilter').value;
+    const priorityFilter = document.getElementById('priorityFilter').value;
+
+    filteredProjects = allProjects.filter(project => {
+        const matchesSearch = !searchTerm || 
+            project.project_name.toLowerCase().includes(searchTerm) ||
+            (project.description && project.description.toLowerCase().includes(searchTerm));
+        
+        const matchesStatus = !statusFilter || project.status === statusFilter;
+        const matchesPriority = !priorityFilter || project.priority === priorityFilter;
+
+        return matchesSearch && matchesStatus && matchesPriority;
+    });
+
+    renderProjects();
 }
 
-function renderOverview() {
-    const project = projectData.project;
-    const tasks = projectData.tasks;
+function renderProjects() {
+    const grid = document.getElementById('projectsGrid');
     
-    const completedTasks = tasks.filter(t => t.status === 'done').length;
-    const progressPercentage = tasks.length > 0 ? Math.round((completedTasks / tasks.length) * 100) : 0;
-
-    document.getElementById('overview').innerHTML = `
-        <div class="card">
-            <h3>Project Progress</h3>
-            <div style="margin-bottom: 1rem;">
-                <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
-                    <span>Completion</span>
-                    <span><strong>${progressPercentage}%</strong></span>
-                </div>
-                <div style="width: 100%; height: 20px; background: var(--light); border-radius: 10px; overflow: hidden;">
-                    <div style="width: ${progressPercentage}%; height: 100%; background: var(--success); transition: width 0.3s;"></div>
-                </div>
-            </div>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-top: 1.5rem;">
-                <div style="text-align: center; padding: 1rem; background: var(--light); border-radius: var(--radius-md);">
-                    <div style="font-size: 2rem; color: var(--primary);">${tasks.length}</div>
-                    <div style="color: var(--secondary);">Total Tasks</div>
-                </div>
-                <div style="text-align: center; padding: 1rem; background: var(--light); border-radius: var(--radius-md);">
-                    <div style="font-size: 2rem; color: var(--success);">${completedTasks}</div>
-                    <div style="color: var(--secondary);">Completed</div>
-                </div>
-                <div style="text-align: center; padding: 1rem; background: var(--light); border-radius: var(--radius-md);">
-                    <div style="font-size: 2rem; color: var(--warning);">${tasks.length - completedTasks}</div>
-                    <div style="color: var(--secondary);">In Progress</div>
-                </div>
-                <div style="text-align: center; padding: 1rem; background: var(--light); border-radius: var(--radius-md);">
-                    <div style="font-size: 2rem; color: var(--primary);">${projectData.members.length}</div>
-                    <div style="color: var(--secondary);">Team Members</div>
-                </div>
-            </div>
-        </div>
-    `;
-}
-
-function renderTasks() {
-    const tasks = projectData.tasks;
-    
-    document.getElementById('tasks').innerHTML = `
-        <div class="card">
-            <div class="card-header">
-                <h3>Project Tasks</h3>
-                ${Auth.isManagerOrAdmin() ? `
-                    <button class="btn btn-sm btn-primary" onclick="window.location.href='tasks.html?project=${projectData.project.project_id}'">
-                        + Add Task
-                    </button>
-                ` : ''}
-            </div>
-            ${tasks.length === 0 ? `
-                <p class="text-muted text-center" style="padding: 2rem;">No tasks yet.</p>
-            ` : `
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th>Task Name</th>
-                            <th>Status</th>
-                            <th>Priority</th>
-                            <th>Assigned To</th>
-                            <th>Due Date</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${tasks.map(task => `
-                            <tr style="cursor: pointer;" onclick="window.location.href='tasks.html?id=${task.task_id}'">
-                                <td>${Utils.escapeHtml(task.task_name)}</td>
-                                <td>${Components.renderStatusBadge(task.status)}</td>
-                                <td>${Components.renderPriorityBadge(task.priority)}</td>
-                                <td>${task.assigned_to || 'Unassigned'}</td>
-                                <td>${Utils.formatDate(task.due_date)}</td>
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
-            `}
-        </div>
-    `;
-}
-
-function renderMembers() {
-    const members = projectData.members;
-    
-    document.getElementById('members').innerHTML = `
-        <div class="card">
-            <div class="card-header">
-                <h3>Team Members</h3>
-                ${Auth.isManagerOrAdmin() ? `
-                    <button class="btn btn-sm btn-primary" onclick="showAddMemberModal()">+ Add Member</button>
-                ` : ''}
-            </div>
-            <div class="member-list">
-                ${members.map(member => `
-                    <div class="member-item">
-                        <div>
-                            <strong>${member.first_name} ${member.last_name}</strong>
-                            <div style="font-size: 0.875rem; color: var(--secondary);">
-                                ${member.email} • ${Utils.capitalize(member.role)}
-                            </div>
-                        </div>
-                        ${Auth.isManagerOrAdmin() ? `
-                            <button class="btn btn-sm btn-danger" onclick="removeMember('${member.user_id}')">
-                                Remove
-                            </button>
-                        ` : ''}
-                    </div>
-                `).join('')}
-            </div>
-        </div>
-    `;
-}
-
-async function renderChat(projectId) {
-    try {
-        const messages = await API.messages.getProjectChat(projectId);
-        projectData.messages = messages;
-
-        document.getElementById('chat').innerHTML = `
+    if (filteredProjects.length === 0) {
+        grid.innerHTML = `
             <div class="card">
-                <div style="height: 500px; display: flex; flex-direction: column;">
-                    <div style="flex: 1; overflow-y: auto; padding: 1rem; border: 1px solid var(--light); border-radius: var(--radius-md); margin-bottom: 1rem;" id="chatMessages">
-                        ${messages.length === 0 ? '<p class="text-muted text-center">No messages yet.</p>' : 
-                            messages.map(msg => `
-                                <div style="margin-bottom: 1rem;">
-                                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.25rem;">
-                                        <strong>${msg.first_name} ${msg.last_name}</strong>
-                                        <span style="font-size: 0.875rem; color: var(--secondary);">
-                                            ${Utils.formatRelativeTime(msg.sent_at)}
-                                        </span>
-                                    </div>
-                                    <p style="margin: 0;">${Utils.escapeHtml(msg.message_text)}</p>
-                                </div>
-                            `).join('')
-                        }
-                    </div>
-                    <form id="sendMessageForm" onsubmit="sendMessage(event, ${projectId})">
-                        <div style="display: flex; gap: 0.5rem;">
-                            <input 
-                                type="text" 
-                                class="form-control" 
-                                id="messageInput" 
-                                placeholder="Type a message..."
-                                required
-                            >
-                            <button type="submit" class="btn btn-primary">Send</button>
-                        </div>
-                    </form>
+                <div class="empty-state" style="text-align: center; padding: 3rem;">
+                    <div style="font-size: 4rem;">📁</div>
+                    <p style="font-size: 1.125rem; color: var(--secondary);">No projects found</p>
+                    ${Auth.isManagerOrAdmin() ? `
+                        <button class="btn btn-primary" onclick="showCreateProjectModal()" style="margin-top: 1rem;">
+                            Create Your First Project
+                        </button>
+                    ` : ''}
                 </div>
             </div>
         `;
-    } catch (error) {
-        console.error('Error loading chat:', error);
+        return;
     }
+
+    grid.innerHTML = `
+        <div class="projects-grid">
+            ${filteredProjects.map(project => `
+                <div class="card project-card" onclick="viewProject(${project.project_id})">
+                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1rem;">
+                        <h3 style="margin: 0; font-size: 1.25rem; flex: 1;">${Utils.escapeHtml(project.project_name)}</h3>
+                        ${Components.renderStatusBadge(project.status)}
+                    </div>
+                    <p style="color: var(--secondary); margin-bottom: 1rem; min-height: 3rem;">
+                        ${Utils.truncate(project.description || 'No description', 120)}
+                    </p>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        ${Components.renderPriorityBadge(project.priority)}
+                        <span style="font-size: 0.875rem; color: var(--secondary);">
+                            📅 ${Utils.formatDate(project.start_date)} - ${Utils.formatDate(project.end_date)}
+                        </span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 1rem; border-top: 1px solid var(--light);">
+                        <span style="font-size: 0.875rem; color: var(--secondary);">
+                            Created by: ${project.created_by || 'Unknown'}
+                        </span>
+                        ${Auth.isManagerOrAdmin() ? `
+                            <div style="display: flex; gap: 0.5rem;" onclick="event.stopPropagation();">
+                                <button class="btn btn-sm" onclick="editProject(${project.project_id})">Edit</button>
+                                <button class="btn btn-sm btn-danger" onclick="deleteProject(${project.project_id})">Delete</button>
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+    `;
 }
 
-function switchTab(tabName) {
-    document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
-    document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-    
-    event.target.classList.add('active');
-    document.getElementById(tabName).classList.add('active');
+function viewProject(projectId) {
+    window.location.href = `project-detail.html?id=${projectId}`;
 }
 
-async function sendMessage(event, projectId) {
+function showCreateProjectModal() {
+    const modal = document.createElement('div');
+    modal.className = 'modal show';
+    modal.id = 'createProjectModal';
+    modal.innerHTML = `
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header">
+                <h2>Create New Project</h2>
+                <button class="modal-close" onclick="closeModal('createProjectModal')">×</button>
+            </div>
+            <form id="createProjectForm" onsubmit="createProject(event)">
+                <div class="form-group">
+                    <label class="form-label">Project Name *</label>
+                    <input type="text" class="form-control" id="projectName" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Description</label>
+                    <textarea class="form-control" id="projectDescription" rows="3"></textarea>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div class="form-group">
+                        <label class="form-label">Start Date *</label>
+                        <input type="date" class="form-control" id="startDate" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">End Date *</label>
+                        <input type="date" class="form-control" id="endDate" required>
+                    </div>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div class="form-group">
+                        <label class="form-label">Status</label>
+                        <select class="form-control" id="projectStatus">
+                            <option value="planning">Planning</option>
+                            <option value="active">Active</option>
+                            <option value="on_hold">On Hold</option>
+                            <option value="completed">Completed</option>
+                            <option value="cancelled">Cancelled</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Priority</label>
+                        <select class="form-control" id="projectPriority">
+                            <option value="low">Low</option>
+                            <option value="medium" selected>Medium</option>
+                            <option value="high">High</option>
+                            <option value="critical">Critical</option>
+                        </select>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 1rem;">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('createProjectModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Create Project</button>
+                </div>
+            </form>
+        </div>
+    `;
+    document.body.appendChild(modal);
+}
+
+async function createProject(event) {
     event.preventDefault();
-    const input = document.getElementById('messageInput');
-    const message = input.value.trim();
     
-    if (!message) return;
+    const projectData = {
+        project_name: document.getElementById('projectName').value.trim(),
+        description: document.getElementById('projectDescription').value.trim(),
+        start_date: document.getElementById('startDate').value,
+        end_date: document.getElementById('endDate').value,
+        status: document.getElementById('projectStatus').value,
+        priority: document.getElementById('projectPriority').value
+    };
 
     try {
-        // This would need a conversation ID - simplified for demo
-        Utils.showToast('Message sent', 'success');
-        input.value = '';
-        await renderChat(projectId);
+        await API.projects.create(projectData);
+        Utils.showToast('Project created successfully!', 'success');
+        closeModal('createProjectModal');
+        await loadProjects();
     } catch (error) {
-        Utils.showToast('Failed to send message', 'error');
+        console.error('Error creating project:', error);
+        Utils.showToast('Failed to create project', 'error');
     }
 }
 
-async function deleteProject() {
-    if (!confirm('Are you sure you want to delete this project? This action cannot be undone.')) return;
+function editProject(projectId) {
+    // Find the project
+    const project = allProjects.find(p => p.project_id === projectId);
+    if (!project) return;
+
+    const modal = document.createElement('div');
+    modal.className = 'modal show';
+    modal.id = 'editProjectModal';
+    modal.innerHTML = `
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header">
+                <h2>Edit Project</h2>
+                <button class="modal-close" onclick="closeModal('editProjectModal')">×</button>
+            </div>
+            <form id="editProjectForm" onsubmit="updateProject(event, ${projectId})">
+                <div class="form-group">
+                    <label class="form-label">Project Name *</label>
+                    <input type="text" class="form-control" id="editProjectName" value="${Utils.escapeHtml(project.project_name)}" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Description</label>
+                    <textarea class="form-control" id="editProjectDescription" rows="3">${Utils.escapeHtml(project.description || '')}</textarea>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div class="form-group">
+                        <label class="form-label">Start Date *</label>
+                        <input type="date" class="form-control" id="editStartDate" value="${project.start_date}" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">End Date *</label>
+                        <input type="date" class="form-control" id="editEndDate" value="${project.end_date}" required>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 1rem;">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('editProjectModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Update Project</button>
+                </div>
+            </form>
+        </div>
+    `;
+    document.body.appendChild(modal);
+}
+
+async function updateProject(event, projectId) {
+    event.preventDefault();
+    
+    const projectData = {
+        project_name: document.getElementById('editProjectName').value.trim(),
+        description: document.getElementById('editProjectDescription').value.trim(),
+        start_date: document.getElementById('editStartDate').value,
+        end_date: document.getElementById('editEndDate').value
+    };
 
     try {
-        await API.projects.delete(projectData.project.project_id);
-        Utils.showToast('Project deleted successfully', 'success');
-        window.location.href = 'projects.html';
+        await API.projects.update(projectId, projectData);
+        Utils.showToast('Project updated successfully!', 'success');
+        closeModal('editProjectModal');
+        await loadProjects();
     } catch (error) {
+        console.error('Error updating project:', error);
+        Utils.showToast('Failed to update project', 'error');
+    }
+}
+
+async function deleteProject(projectId) {
+    if (!confirm('Are you sure you want to delete this project? This will also delete all associated tasks.')) {
+        return;
+    }
+
+    try {
+        await API.projects.delete(projectId);
+        Utils.showToast('Project deleted successfully', 'success');
+        await loadProjects();
+    } catch (error) {
+        console.error('Error deleting project:', error);
         Utils.showToast('Failed to delete project', 'error');
+    }
+}
+
+function closeModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.remove();
     }
 }

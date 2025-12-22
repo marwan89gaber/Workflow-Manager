@@ -9,8 +9,8 @@ const validation = require('../middleware/validation');
 
 // Public routes (no authentication required)
 router.post('/register', 
-    //validation.validateUserRegistration(),
-    //validation.handleValidationErrors,
+    validation.validateUserRegistration(),
+    validation.handleValidationErrors,
     UserController.register
 );
 
