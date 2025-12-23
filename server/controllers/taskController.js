@@ -106,7 +106,8 @@ class TaskController {
         try {
             const data = await db.getTasksByUserId(userId);
             //console.log('📋 Retrieved tasks for user:', userId, 'Count:', data.length);
-            res.json({ data: data });
+            //console.log('data sample:', data.slice(0,2));
+            res.json(data);
         } catch (err) {
             console.error('❌ Error getting tasks for user:', err);
             res.status(500).json({ error: err.message });

@@ -7,6 +7,7 @@ const Components = {
     renderSidebar() {
         const user = Auth.getUser();
         const isManagerOrAdmin = Auth.isManagerOrAdmin();
+        const currentPage = window.location.pathname.split('/').pop();
         
         return `
             <div class="sidebar">
@@ -18,51 +19,51 @@ const Components = {
                 </div>
                 <ul class="sidebar-nav">
                     <li>
-                        <a href="dashboard.html" class="${window.location.pathname.includes('dashboard') ? 'active' : ''}">
+                        <a href="dashboard.html" class="${currentPage === 'dashboard.html' ? 'active' : ''}">
                             <span class="icon">📊</span>
                             Dashboard
                         </a>
                     </li>
                     <li>
-                        <a href="projects.html" class="${window.location.pathname.includes('project') ? 'active' : ''}">
+                        <a href="projects.html" class="${currentPage === 'projects.html' || currentPage === 'project-detail.html' ? 'active' : ''}">
                             <span class="icon">📁</span>
                             Projects
                         </a>
                     </li>
                     <li>
-                        <a href="tasks.html" class="${window.location.pathname.includes('task') ? 'active' : ''}">
+                        <a href="tasks.html" class="${currentPage === 'tasks.html' ? 'active' : ''}">
                             <span class="icon">✓</span>
                             My Tasks
                         </a>
                     </li>
                     <li>
-                        <a href="task-board.html">
+                        <a href="task-board.html" class="${currentPage === 'task-board.html' ? 'active' : ''}">
                             <span class="icon">📋</span>
                             Task Board
                         </a>
                     </li>
                     <li>
-                        <a href="chat.html" class="${window.location.pathname.includes('chat') ? 'active' : ''}">
+                        <a href="chat.html" class="${currentPage === 'chat.html' ? 'active' : ''}">
                             <span class="icon">💬</span>
                             Messages
                         </a>
                     </li>
                     <li>
-                        <a href="notifications.html" class="${window.location.pathname.includes('notification') ? 'active' : ''}">
+                        <a href="notifications.html" class="${currentPage === 'notifications.html' ? 'active' : ''}">
                             <span class="icon">🔔</span>
                             Notifications
                         </a>
                     </li>
                     ${isManagerOrAdmin ? `
                     <li>
-                        <a href="reports.html" class="${window.location.pathname.includes('report') ? 'active' : ''}">
+                        <a href="reports.html" class="${currentPage === 'reports.html' ? 'active' : ''}">
                             <span class="icon">📈</span>
                             Reports
                         </a>
                     </li>
                     ` : ''}
                     <li>
-                        <a href="profile.html" class="${window.location.pathname.includes('profile') ? 'active' : ''}">
+                        <a href="profile.html" class="${currentPage === 'profile.html' ? 'active' : ''}">
                             <span class="icon">👤</span>
                             Profile
                         </a>
@@ -211,7 +212,7 @@ const Components = {
         `;
     },
 
-    // Render news item
+    /*// Render news item
     renderNewsItem(news) {
         return `
             <div class="card news-item ${news.is_pinned ? 'pinned' : ''}">
@@ -236,7 +237,7 @@ const Components = {
                 </div>
             </div>
         `;
-    },
+    },*/
 
     // Render notification
     renderNotification(notification) {

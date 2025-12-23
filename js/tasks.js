@@ -69,6 +69,7 @@ async function loadTasks() {
     try {
         const user = Auth.getUser();
         const tasks = await API.tasks.getByUser(user.user_id);
+        //console.log('📋 Loaded tasks for user:', user.user_id, 'Count:', tasks.length);
         allTasks = tasks;
         filteredTasks = tasks;
         renderTasks();
@@ -163,13 +164,35 @@ function renderTasks() {
 
 async function showTaskDetail(taskId) {
     try {
+        console.log('🔍 Loading task details for ID:', taskId);
+        
+        // Load task
         const task = await API.tasks.getById(taskId);
+        console.log('✅ Task loaded:', task);
+        
+        // Load comments
         const comments = await API.comments.getByTask(taskId);
+        console.log('✅ Comments loaded:', comments);
+        console.log('🔍 Comments is array?', Array.isArray(comments));
+        console.log('🔍 Comments length:', comments?.length);
+        
+        // Load files
         const files = await API.files.getByTask(taskId);
+        console.log('✅ Files loaded:', files);
+        console.log('🔍 Files is array?', Array.isArray(files));
+        console.log('🔍 Files length:', files?.length);
         
         currentTask = task;
 
         const modal = document.getElementById('taskDetailModal');
+        
+        // Ensure arrays are valid
+        const safeComments = Array.isArray(comments) ? comments : [];
+        const safeFiles = Array.isArray(files) ? files : [];
+        
+        console.log('✅ Safe comments:', safeComments.length);
+        console.log('✅ Safe files:', safeFiles.length);
+        
         modal.innerHTML = `
             <div class="modal show">
                 <div class="modal-content" style="max-width: 800px;">
@@ -201,13 +224,13 @@ async function showTaskDetail(taskId) {
 
                     <!-- Comments Section -->
                     <div class="form-group">
-                        <h3>Comments (${comments.length})</h3>
+                        <h3>Comments (${safeComments.length})</h3>
                         <div id="commentsSection" style="max-height: 300px; overflow-y: auto; margin-bottom: 1rem;">
-                            ${comments.length === 0 ? '<p class="text-muted">No comments yet.</p>' :
-                                comments.map(comment => `
+                            ${safeComments.length === 0 ? '<p class="text-muted">No comments yet.</p>' :
+                                safeComments.map(comment => `
                                     <div style="padding: 1rem; background: var(--light); border-radius: var(--radius-md); margin-bottom: 0.5rem;">
                                         <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
-                                            <strong>${comment.first_name} ${comment.last_name}</strong>
+                                            <strong>${comment.first_name || 'Unknown'} ${comment.last_name || ''}</strong>
                                             <span style="font-size: 0.875rem; color: var(--secondary);">
                                                 ${Utils.formatRelativeTime(comment.created_at)}
                                             </span>
@@ -233,17 +256,19 @@ async function showTaskDetail(taskId) {
 
                     <!-- Files Section -->
                     <div class="form-group">
-                        <h3>Attachments (${files.length})</h3>
+                        <h3>Attachments (${safeFiles.length})</h3>
                         <div style="margin-bottom: 1rem;">
-                            ${files.map(file => `
-                                <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem; background: var(--light); border-radius: var(--radius-md); margin-bottom: 0.5rem;">
-                                    <span>${Utils.getFileIcon(file.file_type)} ${file.file_name}</span>
-                                    <div style="display: flex; gap: 0.5rem;">
-                                        <a href="${API.files.getDownloadUrl(file.file_id)}" class="btn btn-sm" download>Download</a>
-                                        <button class="btn btn-sm btn-danger" onclick="deleteFile(${file.file_id}, ${taskId})">Delete</button>
+                            ${safeFiles.length === 0 ? '<p class="text-muted">No files attached.</p>' :
+                                safeFiles.map(file => `
+                                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem; background: var(--light); border-radius: var(--radius-md); margin-bottom: 0.5rem;">
+                                        <span>${Utils.getFileIcon(file.file_type)} ${file.file_name}</span>
+                                        <div style="display: flex; gap: 0.5rem;">
+                                            <a href="${API.files.getDownloadUrl(file.file_id)}" class="btn btn-sm" download>Download</a>
+                                            <button class="btn btn-sm btn-danger" onclick="deleteFile(${file.file_id}, ${taskId})">Delete</button>
+                                        </div>
                                     </div>
-                                </div>
-                            `).join('') || '<p class="text-muted">No files attached.</p>'}
+                                `).join('')
+                            }
                         </div>
                         <form onsubmit="uploadFile(event, ${taskId})">
                             <div style="display: flex; gap: 0.5rem;">
@@ -255,9 +280,14 @@ async function showTaskDetail(taskId) {
                 </div>
             </div>
         `;
+        
+        console.log('✅ Modal rendered successfully');
+        
     } catch (error) {
-        console.error('Error loading task details:', error);
-        Utils.showToast('Failed to load task details', 'error');
+        console.error('❌ Error loading task details:', error);
+        console.error('❌ Error message:', error.message);
+        console.error('❌ Error stack:', error.stack);
+        Utils.showToast('Failed to load task details: ' + error.message, 'error');
     }
 }
 
