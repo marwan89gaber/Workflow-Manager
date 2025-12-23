@@ -3,7 +3,9 @@
 // ==========================================
 
 let allProjects = [];
+let myProjects = [];
 let filteredProjects = [];
+let showOnlyMyProjects = false;
 
 async function initProjects() {
     await Components.initLayout();
@@ -48,6 +50,9 @@ async function initProjects() {
                     <option value="high">High</option>
                     <option value="critical">Critical</option>
                 </select>
+                <button class="btn ${showOnlyMyProjects ? 'btn-primary' : 'btn-secondary'}" id="myProjectsBtn" onclick="toggleMyProjects()">
+                    ${showOnlyMyProjects ? '👤 My Projects' : '🌐 All Projects'}
+                </button>
             </div>
         </div>
 
@@ -62,12 +67,29 @@ async function initProjects() {
 
 async function loadProjects() {
     try {
-        const projects = await API.projects.getAll();
-        allProjects = projects.data || projects;
-        filteredProjects = allProjects;
+        const user = Auth.getUser();
         
-        console.log('📁 Loaded projects:', allProjects.length);
-        renderProjects();
+        // Load all projects and user's projects in parallel
+        const [allProjectsResponse, myProjectsResponse] = await Promise.all([
+            API.projects.getAll(),
+            API.projects.getUserProjects(user.user_id)
+        ]);
+        
+        allProjects = allProjectsResponse.data || allProjectsResponse;
+        myProjects = myProjectsResponse.data || myProjectsResponse;
+        
+        // Create a Set of project IDs the user is a member of for quick lookup
+        const myProjectIds = new Set(myProjects.map(p => p.project_id));
+        
+        // Mark each project with whether user is a member
+        allProjects.forEach(project => {
+            project.isMember = myProjectIds.has(project.project_id);
+        });
+        
+        //console.log('📁 Loaded all projects:', allProjects.length);
+        //console.log('👤 User is member of:', myProjects.length, 'projects');
+        
+        filterProjects();
     } catch (error) {
         console.error('Error loading projects:', error);
         Utils.showToast('Failed to load projects', 'error');
@@ -76,12 +98,26 @@ async function loadProjects() {
     }
 }
 
+function toggleMyProjects() {
+    showOnlyMyProjects = !showOnlyMyProjects;
+    
+    // Update button
+    const btn = document.getElementById('myProjectsBtn');
+    btn.textContent = showOnlyMyProjects ? '👤 My Projects' : '🌐 All Projects';
+    btn.className = `btn ${showOnlyMyProjects ? 'btn-primary' : 'btn-secondary'}`;
+
+    filterProjects();
+}
+
 function filterProjects() {
     const searchTerm = document.getElementById('searchInput').value.toLowerCase();
     const statusFilter = document.getElementById('statusFilter').value;
     const priorityFilter = document.getElementById('priorityFilter').value;
 
-    filteredProjects = allProjects.filter(project => {
+    // Start with either all projects or only user's projects
+    let projectsToFilter = showOnlyMyProjects ? myProjects : allProjects;
+
+    filteredProjects = projectsToFilter.filter(project => {
         const matchesSearch = !searchTerm || 
             project.project_name.toLowerCase().includes(searchTerm) ||
             (project.description && project.description.toLowerCase().includes(searchTerm));
@@ -103,8 +139,10 @@ function renderProjects() {
             <div class="card">
                 <div class="empty-state" style="text-align: center; padding: 3rem;">
                     <div style="font-size: 4rem;">📁</div>
-                    <p style="font-size: 1.125rem; color: var(--secondary);">No projects found</p>
-                    ${Auth.isManagerOrAdmin() ? `
+                    <p style="font-size: 1.125rem; color: var(--secondary);">
+                        ${showOnlyMyProjects ? 'You are not assigned to any projects yet' : 'No projects found'}
+                    </p>
+                    ${Auth.isManagerOrAdmin() && !showOnlyMyProjects ? `
                         <button class="btn btn-primary" onclick="showCreateProjectModal()" style="margin-top: 1rem;">
                             Create Your First Project
                         </button>
@@ -117,10 +155,19 @@ function renderProjects() {
 
     grid.innerHTML = `
         <div class="projects-grid">
-            ${filteredProjects.map(project => `
-                <div class="card project-card" onclick="viewProject(${project.project_id})">
+            ${filteredProjects.map(project => {
+                const isMember = project.isMember || showOnlyMyProjects;
+                const isLocked = !isMember && !Auth.isManagerOrAdmin();
+                
+                return `
+                <div class="card project-card ${isLocked ? 'locked-project' : ''}" 
+                     onclick="${isLocked ? 'showAccessDeniedMessage()' : `viewProject(${project.project_id})`}"
+                     style="${isLocked ? 'opacity: 0.95; cursor: not-allowed;' : ''}">
                     <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1rem;">
-                        <h3 style="margin: 0; font-size: 1.25rem; flex: 1;">${Utils.escapeHtml(project.project_name)}</h3>
+                        <div style="flex: 1; display: flex; align-items: center; gap: 0.5rem;">
+                            ${isLocked ? '<span style="font-size: 1.5rem;">🔒</span>' : ''}
+                            <h3 style="margin: 0; font-size: 1.25rem;">${Utils.escapeHtml(project.project_name)}</h3>
+                        </div>
                         ${Components.renderStatusBadge(project.status)}
                     </div>
                     <p style="color: var(--secondary); margin-bottom: 1rem; min-height: 3rem;">
@@ -133,10 +180,13 @@ function renderProjects() {
                         </span>
                     </div>
                     <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 1rem; border-top: 1px solid var(--light);">
-                        <span style="font-size: 0.875rem; color: var(--secondary);">
-                            Created by: ${project.created_by || 'Unknown'}
-                        </span>
-                        ${Auth.isManagerOrAdmin() ? `
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <span style="font-size: 0.875rem; color: var(--secondary);">
+                                Created by: ${project.created_by || 'Unknown'}
+                            </span>
+                            ${isMember ? '<span style="color: var(--success); font-size: 0.875rem;">• Member</span>' : ''}
+                        </div>
+                        ${Auth.isManagerOrAdmin() && !isLocked ? `
                             <div style="display: flex; gap: 0.5rem;" onclick="event.stopPropagation();">
                                 <button class="btn btn-sm" onclick="editProject(${project.project_id})">Edit</button>
                                 <button class="btn btn-sm btn-danger" onclick="deleteProject(${project.project_id})">Delete</button>
@@ -144,13 +194,26 @@ function renderProjects() {
                         ` : ''}
                     </div>
                 </div>
-            `).join('')}
+            `}).join('')}
         </div>
     `;
 }
 
 function viewProject(projectId) {
+    const project = allProjects.find(p => p.project_id === projectId);
+    const isMember = project?.isMember;
+    
+    // Check if user has access
+    if (!isMember && !Auth.isManagerOrAdmin()) {
+        showAccessDeniedMessage();
+        return;
+    }
+    
     window.location.href = `project-detail.html?id=${projectId}`;
+}
+
+function showAccessDeniedMessage() {
+    Utils.showToast('You are not a member of this project', 'warning');
 }
 
 function showCreateProjectModal() {

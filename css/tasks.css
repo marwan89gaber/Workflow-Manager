@@ -80,6 +80,12 @@ css/tasks.css
     border: 2px dashed var(--primary);
 }
 
+.filters {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
 @media (max-width: 1200px) {
     .board-container {
         grid-template-columns: repeat(2, 1fr);
