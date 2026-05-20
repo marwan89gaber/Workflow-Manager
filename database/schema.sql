@@ -20,7 +20,7 @@ CREATE TABLE users (
     phone VARCHAR(20),
     department VARCHAR(50),
     profile_picture VARCHAR(255),
-    status ENUM('active', 'inactive', 'on_leave') DEFAULT 'active',
+    status ENUM('active', 'inactive', 'on_leave', 'pending') DEFAULT 'active',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     last_login TIMESTAMP NULL,
     INDEX idx_email (email),

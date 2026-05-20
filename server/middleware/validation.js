@@ -52,8 +52,8 @@ class ValidationMiddleware {
         return [
             body('project_name').trim().notEmpty().withMessage('Project name is required'),
             body('description').optional().trim(),
-            body('start_date').optional().isDate().withMessage('Invalid start date'),
-            body('end_date').optional().isDate().withMessage('Invalid end date'),
+            body('start_date').optional().isDate({ format: 'YYYY-MM-DD' }).withMessage('Invalid start date'),
+            body('end_date').optional().isDate({ format: 'YYYY-MM-DD' }).withMessage('Invalid end date'),
             body('status').optional().isIn(['planning', 'active', 'on_hold', 'completed', 'cancelled']),
             body('priority').optional().isIn(['low', 'medium', 'high', 'critical'])
         ];

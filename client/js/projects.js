@@ -7,6 +7,8 @@ let myProjects = [];
 let filteredProjects = [];
 let showOnlyMyProjects = false;
 
+const toDateInput = (d) => d ? d.split('T')[0] : '';
+
 async function initProjects() {
     await Components.initLayout();
     
@@ -274,6 +276,7 @@ function showCreateProjectModal() {
         </div>
     `;
     document.body.appendChild(modal);
+    document.getElementById('projectDescription').value = '';
 }
 
 async function createProject(event) {
@@ -320,16 +323,16 @@ function editProject(projectId) {
                 </div>
                 <div class="form-group">
                     <label class="form-label">Description</label>
-                    <textarea class="form-control" id="editProjectDescription" rows="3">${Utils.escapeHtml(project.description || '')}</textarea>
+                    <textarea class="form-control" id="editProjectDescription" rows="3"></textarea>
                 </div>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
                     <div class="form-group">
                         <label class="form-label">Start Date *</label>
-                        <input type="date" class="form-control" id="editStartDate" value="${project.start_date}" required>
+                        <input type="date" class="form-control" id="editStartDate" value="${toDateInput(project.start_date)}" required>
                     </div>
                     <div class="form-group">
                         <label class="form-label">End Date *</label>
-                        <input type="date" class="form-control" id="editEndDate" value="${project.end_date}" required>
+                        <input type="date" class="form-control" id="editEndDate" value="${toDateInput(project.end_date)}" required>
                     </div>
                 </div>
                 <div style="display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 1rem;">
@@ -340,6 +343,7 @@ function editProject(projectId) {
         </div>
     `;
     document.body.appendChild(modal);
+    document.getElementById('editProjectDescription').value = project.description || '';
 }
 
 async function updateProject(event, projectId) {

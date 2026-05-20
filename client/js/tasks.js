@@ -148,7 +148,7 @@ function renderTasks() {
                             <td style="color: ${isOverdue ? 'var(--danger)' : 'inherit'};">
                                 ${Utils.formatDate(task.due_date)}
                             </td>
-                            <td>${task.project_id || 'N/A'}</td>
+                            <td>${Utils.escapeHtml(task.project_name || 'N/A')}</td>
                             <td>
                                 <button class="btn btn-sm" onclick="event.stopPropagation(); updateTaskStatus(${task.task_id})">
                                     Update Status
@@ -297,12 +297,27 @@ function closeTaskDetail() {
 }
 
 async function updateTaskStatus(taskId) {
-    const newStatus = prompt('Enter new status (todo, in_progress, in_review, done):');
-    if (!newStatus || !['todo', 'in_progress', 'in_review', 'done'].includes(newStatus)) {
-        return;
-    }
-
     try {
+        if (!Auth.isManagerOrAdmin()) {
+            const files = await API.files.getByTask(taskId);
+            const fileList = Array.isArray(files) ? files : (files?.data || []);
+
+            if (!fileList.length) {
+                Utils.showToast('You must upload a file before submitting for review', 'warning');
+                return;
+            }
+
+            await API.tasks.updateStatus(taskId, 'in_review');
+            Utils.showToast('Task submitted for review', 'success');
+            await loadTasks();
+            return;
+        }
+
+        const newStatus = prompt('Enter new status (todo, in_progress, in_review, done):');
+        if (!newStatus || !['todo', 'in_progress', 'in_review', 'done'].includes(newStatus)) {
+            return;
+        }
+
         await API.tasks.updateStatus(taskId, newStatus);
         Utils.showToast('Task status updated', 'success');
         await loadTasks();

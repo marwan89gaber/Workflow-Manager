@@ -55,6 +55,18 @@ router.put('/:id/status',
     UserController.updateUserStatus
 );
 
+router.put('/:id/approve',
+    auth.authenticateToken,
+    auth.authorizeRole('admin'),
+    UserController.approveUser
+);
+
+router.put('/:id/promote',
+    auth.authenticateToken,
+    auth.authorizeRole('admin'),
+    UserController.promoteUser
+);
+
 router.put('/:id/password',
     auth.authenticateToken,
     UserController.changePassword

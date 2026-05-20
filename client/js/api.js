@@ -104,11 +104,14 @@ const API = {
     // USERS
     users: {
         getAll: () => API.get('/users'),
+        getPending: () => API.get('/users?status=pending'),
         getById: (id) => API.get(`/users/${id}`),
         update: (id, data) => API.put(`/users/${id}`, data),
         delete: (id) => API.delete(`/users/${id}`),
         getDashboard: (id) => API.get(`/users/${id}/dashboard`),
         updateStatus: (id, status) => API.put(`/users/${id}/status`, { status }),
+        approve: (id) => API.put(`/users/${id}/approve`),
+        promote: (id) => API.put(`/users/${id}/promote`),
         changePassword: (id, oldPassword, newPassword) => 
             API.put(`/users/${id}/password`, { oldPassword, newPassword })
     },
@@ -141,6 +144,9 @@ const API = {
         getHistory: (id) => API.get(`/tasks/${id}/history`),
         getByProject: (projectId) => API.get(`/tasks/project/${projectId}`),
         getByUser: (userId) => API.get(`/tasks/user/${userId}`),
+        getByManager: (managerId) => API.get(`/tasks/manager/${managerId}`),
+        accept: (id) => API.put(`/tasks/${id}/accept`),
+        decline: (id) => API.put(`/tasks/${id}/decline`),
         updatePriority: (id, priority) => API.put(`/tasks/${id}/priority`, { priority }),
         getOverdue: () => API.get('/tasks/overdue')
     },

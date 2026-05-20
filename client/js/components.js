@@ -30,12 +30,14 @@ const Components = {
                             Projects
                         </a>
                     </li>
+                    ${!isManagerOrAdmin ? `
                     <li>
                         <a href="tasks.html" class="${currentPage === 'tasks.html' ? 'active' : ''}">
                             <span class="icon">✓</span>
                             My Tasks
                         </a>
                     </li>
+                    ` : ''}
                     <li>
                         <a href="task-board.html" class="${currentPage === 'task-board.html' ? 'active' : ''}">
                             <span class="icon">📋</span>
@@ -59,6 +61,14 @@ const Components = {
                         <a href="reports.html" class="${currentPage === 'reports.html' ? 'active' : ''}">
                             <span class="icon">📈</span>
                             Reports
+                        </a>
+                    </li>
+                    ` : ''}
+                    ${Auth.isAdmin() ? `
+                    <li>
+                        <a href="admin.html" class="${currentPage === 'admin.html' ? 'active' : ''}">
+                            <span class="icon">🛠️</span>
+                            Admin
                         </a>
                     </li>
                     ` : ''}

@@ -1,8 +1,9 @@
 const mysql = require('mysql2');
 const dotenv = require('dotenv');
 const bcrypt = require('bcrypt');
+const path = require('path');
 
-dotenv.config();
+dotenv.config({ path: path.join(__dirname, '.env') });
 
 const pool = mysql.createPool({
     host: process.env.DB_HOST,
@@ -57,7 +58,7 @@ class DbService {
         }
     }
 
-    async insertNewUser(first_name, last_name, email, password, role, department, phone) {
+    async insertNewUser(first_name, last_name, email, password, role, department, phone, status = 'pending') {
         try {
             // Generate custom user ID using stored procedure
             const userIdResult = await this.query(
@@ -73,12 +74,34 @@ class DbService {
 
             // Insert user
             const query = `
-                INSERT INTO users (user_id, first_name, last_name, email, password, role, department, phone) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+                INSERT INTO users (user_id, first_name, last_name, email, password, role, department, phone, status) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
             `;
-            await this.query(query, [user_id, first_name, last_name, email, hashedPassword, role, department, phone]);
+            await this.query(query, [user_id, first_name, last_name, email, hashedPassword, role, department, phone, status]);
 
             return { user_id, first_name, last_name, email, role };
+        } catch (error) {
+            console.log(error);
+            throw error;
+        }
+    }
+
+    async getUsersByStatus(status) {
+        try {
+            const query = "SELECT * FROM users WHERE status = ?;";
+            const results = await this.query(query, [status]);
+            return results;
+        } catch (error) {
+            console.log(error);
+            throw error;
+        }
+    }
+
+    async updateUserRole(id, role) {
+        try {
+            const query = "UPDATE users SET role = ? WHERE user_id = ?;";
+            const result = await this.query(query, [role, id]);
+            return result.affectedRows > 0;
         } catch (error) {
             console.log(error);
             throw error;
@@ -447,8 +470,29 @@ class DbService {
 
     async getTasksByUserId(user_id) {
         try {
-            const query = "SELECT * FROM tasks WHERE assigned_to = ?;";
+            const query = `
+                SELECT t.*, p.project_name
+                FROM tasks t
+                LEFT JOIN projects p ON t.project_id = p.project_id
+                WHERE t.assigned_to = ?;
+            `;
             const results = await this.query(query, [user_id]);
+            return results;
+        } catch (error) {
+            console.log(error);
+            throw error;
+        }
+    }
+
+    async getTasksByManagerProjects(manager_id) {
+        try {
+            const query = `
+                SELECT t.*
+                FROM tasks t
+                JOIN projects p ON t.project_id = p.project_id
+                WHERE p.created_by = ?;
+            `;
+            const results = await this.query(query, [manager_id]);
             return results;
         } catch (error) {
             console.log(error);

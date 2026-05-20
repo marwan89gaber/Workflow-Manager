@@ -9,6 +9,10 @@ class UserController {
         console.log('📥 Request body:', req.body);
         
         const { first_name, last_name, email, password, role, department, phone } = req.body;
+
+        if (role === 'admin') {
+            return res.status(403).json({ success: false, message: 'Admin accounts cannot self-register' });
+        }
         
         console.log('📝 Extracted values:', {
             first_name,
@@ -22,7 +26,7 @@ class UserController {
         
         const db = DbService.getDbServiceInstance();
         try {
-            const data = await db.insertNewUser(first_name, last_name, email, password, role, department, phone);
+            const data = await db.insertNewUser(first_name, last_name, email, password, role, department, phone, 'pending');
             res.json({ success: true, data: data });
         } catch (err) {
             console.error('❌ Error:', err.message);
@@ -61,6 +65,13 @@ class UserController {
                 return res.status(401).json({ success: false, message: 'Invalid password' });
             }
 
+            if (user.status === 'pending') {
+                return res.status(403).json({
+                    success: false,
+                    message: 'Your account is pending admin approval'
+                });
+            }
+
             // Generate token
             const token = AuthMiddleware.generateToken(user);
             console.log('🎫 Token generated');
@@ -85,7 +96,8 @@ class UserController {
     static async getAllUsers(req, res) {
         const db = DbService.getDbServiceInstance();
         try {
-            const data = await db.getAllData();
+            const { status } = req.query;
+            const data = status ? await db.getUsersByStatus(status) : await db.getAllData();
             res.json({ data: data });
         } catch (err) {
             res.status(500).json({ error: err.message });
@@ -201,6 +213,47 @@ class UserController {
                 res.json({ success: true, message: `User status updated to ${status}` });
             } else {
                 res.status(404).json({ success: false, error: 'User not found' });
+            }
+        } catch (err) {
+            res.status(500).json({ success: false, error: err.message });
+        }
+    }
+
+    static async approveUser(req, res) {
+        const { id } = req.params;
+        const db = DbService.getDbServiceInstance();
+
+        try {
+            const success = await db.updateUserStatus(id, 'active');
+            if (success) {
+                res.json({ success: true, message: 'User approved successfully' });
+            } else {
+                res.status(404).json({ success: false, error: 'User not found' });
+            }
+        } catch (err) {
+            res.status(500).json({ success: false, error: err.message });
+        }
+    }
+
+    static async promoteUser(req, res) {
+        const { id } = req.params;
+        const db = DbService.getDbServiceInstance();
+
+        try {
+            const user = await db.getUserById(id);
+            if (!user) {
+                return res.status(404).json({ success: false, error: 'User not found' });
+            }
+
+            if (user.role !== 'employee') {
+                return res.status(400).json({ success: false, error: 'Only employees can be promoted' });
+            }
+
+            const success = await db.updateUserRole(id, 'manager');
+            if (success) {
+                res.json({ success: true, message: 'User promoted to manager' });
+            } else {
+                res.status(500).json({ success: false, error: 'Failed to promote user' });
             }
         } catch (err) {
             res.status(500).json({ success: false, error: err.message });

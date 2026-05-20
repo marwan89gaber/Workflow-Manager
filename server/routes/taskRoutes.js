@@ -20,8 +20,22 @@ router.get('/',
     TaskController.getAllTasks
 );
 
+router.get('/manager/:managerId',
+    TaskController.getTasksByManager
+);
+
 router.get('/overdue',
     TaskController.getOverdueTasks
+);
+
+router.put('/:id/accept',
+    auth.authorizeRole('admin', 'manager'),
+    TaskController.acceptTask
+);
+
+router.put('/:id/decline',
+    auth.authorizeRole('admin', 'manager'),
+    TaskController.declineTask
 );
 
 router.get('/:id',

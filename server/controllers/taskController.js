@@ -57,7 +57,16 @@ class TaskController {
     static async updateTaskStatus(req, res){
         const { id } = req.params;
         const { status } = req.body;
+        const requestingUser = req.user;
         const db = DbService.getDbServiceInstance();
+
+        if (requestingUser.role === 'employee' && status === 'done') {
+            return res.status(403).json({
+                success: false,
+                message: 'Employees must submit tasks for review first'
+            });
+        }
+
         try {
             const success = await db.updateTaskStatusById(id, status);
             res.json({ success: success });
@@ -109,6 +118,17 @@ class TaskController {
             res.status(500).json({ error: err.message });
         }
     }        // GET - Get tasks assigned to user
+    static async getTasksByManager(req, res){
+        const { managerId } = req.params;
+        const db = DbService.getDbServiceInstance();
+        try {
+            const data = await db.getTasksByManagerProjects(managerId);
+            res.json(data);
+        } catch (err) {
+            console.error('❌ Error getting tasks for manager:', err);
+            res.status(500).json({ error: err.message });
+        }
+    }        // GET - Get tasks for projects created by manager
     static async getOverdueTasks(req, res){
         const db = DbService.getDbServiceInstance();
         try {
@@ -129,6 +149,27 @@ class TaskController {
             res.status(500).json({ success: false, error: err.message });
         }
     }     // PUT - Change task priority
+    static async acceptTask(req, res){
+        const { id } = req.params;
+        const db = DbService.getDbServiceInstance();
+        try {
+            const success = await db.updateTaskStatusById(id, 'done');
+            res.json({ success: success });
+        } catch (err) {
+            res.status(500).json({ success: false, error: err.message });
+        }
+    }
+
+    static async declineTask(req, res){
+        const { id } = req.params;
+        const db = DbService.getDbServiceInstance();
+        try {
+            const success = await db.updateTaskStatusById(id, 'in_progress');
+            res.json({ success: success });
+        } catch (err) {
+            res.status(500).json({ success: false, error: err.message });
+        }
+    }
 }
 
 module.exports = TaskController;
