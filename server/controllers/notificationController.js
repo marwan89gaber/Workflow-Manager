@@ -2,7 +2,7 @@ const DbService = require('../dbService');
 
 class NotificationController {
     static async getUserNotifications(req, res){
-        const { userId } = req.params;
+        const userId = req.user.user_id;
         const db = DbService.getDbServiceInstance();
         try {
             const data = await db.getNotificationsByUserId(userId);
@@ -12,7 +12,7 @@ class NotificationController {
         }
     }   // GET - Get user notifications
     static async getUnreadNotifications(req, res){
-        const { userId } = req.params;
+        const userId = req.user.user_id;
         const db = DbService.getDbServiceInstance();
         try {
             const data = await db.getUnreadNotificationsByUserId(userId);
@@ -22,7 +22,7 @@ class NotificationController {
         }
     } // GET - Get unread notifications
     static async markAsRead(req, res){  
-        const { notificationId } = req.body;
+        const notificationId = req.params.id;
         const db = DbService.getDbServiceInstance();
         try {
             const success = await db.markNotificationAsRead(notificationId);
@@ -32,7 +32,7 @@ class NotificationController {
         }
     }             // PUT - Mark notification as read
     static async markAllAsRead(req, res){   
-        const { userId } = req.body;
+        const userId = req.user.user_id;
         const db = DbService.getDbServiceInstance();
         try {
             const success = await db.markAllNotificationsAsRead(userId);
@@ -42,7 +42,7 @@ class NotificationController {
         }
     }          // PUT - Mark all as read
     static async deleteNotification(req, res){
-        const { notificationId } = req.params;
+        const notificationId = req.params.id;
         const db = DbService.getDbServiceInstance();
         try {
             const success = await db.deleteNotificationById(notificationId);
@@ -52,7 +52,7 @@ class NotificationController {
         }
     }     // DELETE - Remove notification
     static async getUnreadCount(req, res){
-        const { userId } = req.params;
+        const userId = req.user.user_id;
         const db = DbService.getDbServiceInstance();
         try {
             const data = await db.getUnreadNotificationCount(userId);

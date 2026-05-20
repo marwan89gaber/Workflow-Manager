@@ -3,10 +3,11 @@ const DbService = require('../dbService');
 class ProjectController {
     // POST - Create new project
     static async createProject(req, res) {
-        const { name, description, startDate, endDate } = req.body;
+        const { project_name, description, start_date, end_date, priority } = req.body;
+        const created_by = req.user.user_id;
         const db = DbService.getDbServiceInstance();
         try {
-            const data = await db.insertNewProject(name, description, startDate, endDate);
+            const data = await db.insertNewProject(project_name, description, created_by, start_date, end_date, priority);
             res.json({ success: true, data: data });
         } catch (err) {
             res.status(500).json({ success: false, error: err.message });
@@ -29,8 +30,7 @@ class ProjectController {
         const { id } = req.params;
         const db = DbService.getDbServiceInstance();
         try {
-            const allProjects = await db.getAllProjects();
-            const project = allProjects.find(project => project.id == id);
+            const project = await db.getProjectById(id);
             if (project) {
                 res.json({ data: project });
             } else {
@@ -44,10 +44,10 @@ class ProjectController {
     // PUT - Update project
     static async updateProject(req, res)    {
         const { id } = req.params;
-        const { name, description, startDate, endDate } = req.body;
+        const { project_name, description, start_date, end_date } = req.body;
         const db = DbService.getDbServiceInstance();
         try {
-            const success = await db.updateProjectById(id, name, description, startDate, endDate);
+            const success = await db.updateProjectById(id, project_name, description, start_date, end_date);
             res.json({ success: success });
         } catch (err) {
             res.status(500).json({ success: false, error: err.message });
@@ -68,10 +68,11 @@ class ProjectController {
     
     // POST - Add user to project
     static async addProjectMember(req, res)   {
-        const { projectId, userId } = req.body;
+        const projectId = req.params.id;
+        const { user_id, role_in_project } = req.body;
         const db = DbService.getDbServiceInstance();
         try {
-            const data = await db.addProjectMember(projectId, userId);
+            const data = await db.addProjectMember(projectId, user_id, role_in_project);
             res.json({ success: true, data: data });
         } catch (err) {
             res.status(500).json({ success: false, error: err.message });
@@ -80,7 +81,7 @@ class ProjectController {
 
     // DELETE - Remove user from project
     static async removeProjectMember(req, res) {
-        const { projectId, userId } = req.body;
+        const { id: projectId, userId } = req.params;
         const db = DbService.getDbServiceInstance();
         try {
             const success = await db.removeProjectMember(projectId, userId);
@@ -104,7 +105,7 @@ class ProjectController {
 
     // GET - Get completion stats
     static async getProjectProgress(req, res)    {
-        const { projectId } = req.params;
+        const projectId = req.params.id;
         const db = DbService.getDbServiceInstance();
         try {
             const data = await db.getProjectProgress(projectId);
@@ -116,7 +117,7 @@ class ProjectController {
 
     // PUT - Change project status
     static async updateProjectStatus(req, res)    {
-        const { projectId } = req.params;
+        const projectId = req.params.id;
         const { status } = req.body;
         const db = DbService.getDbServiceInstance();
         try {

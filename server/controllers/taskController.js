@@ -3,10 +3,11 @@ const DbService = require('../dbService');
 
 class TaskController {
     static async createTask(req, res){
-        const { title, description, status, priority, assignedTo, projectId, dueDate } = req.body;
+        const { project_id, task_name, description, assigned_to, status, priority, due_date } = req.body;
+        const created_by = req.user.user_id;
         const db = DbService.getDbServiceInstance();
         try {
-            const data = await db.insertNewTask(title, description, status, priority, assignedTo, projectId, dueDate);
+            const data = await db.insertNewTask(project_id, task_name, description, assigned_to, created_by, status, priority, due_date);
             res.json({ success: true, data: data });
         } catch (err) {
             res.status(500).json({ success: false, error: err.message });
@@ -25,23 +26,19 @@ class TaskController {
         const { id } = req.params;
         const db = DbService.getDbServiceInstance();
         try {
-            const allTasks = await db.getAllTasks();
-            const task = allTasks.find(task => task.id == id);
-            if (task) {
-                res.json({ data: task });
-            } else {
-                res.status(404).json({ error: 'Task not found' });
-            }
+            const task = await db.getTaskById(id);
+            if (!task) return res.status(404).json({ error: 'Task not found' });
+            res.json({ data: task });
         } catch (err) {
             res.status(500).json({ error: err.message });
         }
     }            // GET - Fetch task details
     static async updateTask(req, res){
         const { id } = req.params;
-        const { title, description, status, priority, assignedTo, projectId, dueDate } = req.body;
+        const { task_name, description, status, priority, assigned_to, due_date } = req.body;
         const db = DbService.getDbServiceInstance();
         try {
-            const success = await db.updateTaskById(id, title, description, status, priority, assignedTo, projectId, dueDate);
+            const success = await db.updateTaskById(id, task_name, description, status, priority, assigned_to, due_date);
             res.json({ success: success });
         } catch (err) {
             res.status(500).json({ success: false, error: err.message });
@@ -70,10 +67,10 @@ class TaskController {
     }       // PUT - Change task status
     static async assignTask(req, res){
         const { id } = req.params;
-        const { assignedTo } = req.body;
+        const { assigned_to } = req.body;
         const db = DbService.getDbServiceInstance();
         try {
-            const success = await db.assignTaskById(id, assignedTo);
+            const success = await db.assignTaskById(id, assigned_to);
             res.json({ success: success });
         } catch (err) {
             res.status(500).json({ success: false, error: err.message });
@@ -93,8 +90,7 @@ class TaskController {
         const { projectId } = req.params;
         const db = DbService.getDbServiceInstance();
         try {
-            const allTasks = await db.getAllTasks();
-            const tasks = allTasks.filter(task => task.projectId == projectId);
+            const tasks = await db.getTasksByProjectId(projectId);
             res.json({ data: tasks });
         } catch (err) {
             res.status(500).json({ error: err.message });
@@ -118,7 +114,7 @@ class TaskController {
         try {
             const allTasks = await db.getAllTasks();
             const currentDate = new Date();
-            const tasks = allTasks.filter(task => new Date(task.dueDate) < currentDate && task.status !== 'Completed');
+            const tasks = allTasks.filter(task => new Date(task.due_date) < currentDate && task.status !== 'done');
             res.json({ data: tasks });
         } catch (err) {
             res.status(500).json({ error: err.message });

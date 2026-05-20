@@ -45,27 +45,25 @@ class ReportController {
         }
     }           // DELETE - Remove report
     static async getTeamPerformance(req, res){
-        const { teamId } = req.params;
         const db = DbService.getDbServiceInstance();
         try {
-            const data = await db.getTeamPerformanceStats(teamId);
+            const data = await db.getTeamPerformanceStats();
             res.json({ data: data });
         } catch (err) {
             res.status(500).json({ error: err.message });
         }
     }     // GET - Team performance stats
     static async getProjectStatus(req, res){
-        const { projectId } = req.params;
         const db = DbService.getDbServiceInstance();
         try {
-            const data = await db.getProjectStatusReport(projectId);
+            const data = await db.getProjectStatusReport();
             res.json({ data: data });
         } catch (err) {
             res.status(500).json({ error: err.message });
         }
     }       // GET - Project status report
     static async getIndividualProductivity(req, res){
-        const { userId } = req.params;
+        const userId = req.user.user_id;
         const db = DbService.getDbServiceInstance();
         try {
             const data = await db.getUserProductivityStats(userId);
@@ -75,10 +73,9 @@ class ReportController {
         }
     } // GET - User productivity
     static async getTaskCompletion(req, res){
-        const { projectId } = req.params;
         const db = DbService.getDbServiceInstance();
         try {
-            const data = await db.getTaskCompletionStats(projectId);
+            const data = await db.getTaskCompletionStats();
             res.json({ data: data });
         } catch (err) {
             res.status(500).json({ error: err.message });

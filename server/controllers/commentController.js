@@ -2,10 +2,11 @@ const DbService = require('../dbService');
 
 class CommentController {
     static async createComment(req, res){
-        const { taskId, authorId, content } = req.body;
+        const { task_id, comment_text } = req.body;
+        const user_id = req.user.user_id;
         const db = DbService.getDbServiceInstance();
         try {
-            const data = await db.insertNewComment(taskId, authorId, content);
+            const data = await db.insertNewComment(task_id, user_id, comment_text);
             res.json({ success: true, data: data });
         } catch (err) {
             res.status(500).json({ success: false, error: err.message });
@@ -23,10 +24,10 @@ class CommentController {
     }      // GET - Get all comments for task
     static async updateComment(req, res){
         const { id } = req.params;
-        const { content } = req.body;
+        const { comment_text } = req.body;
         const db = DbService.getDbServiceInstance();
         try {
-            const success = await db.updateCommentById(id, content);
+            const success = await db.updateCommentById(id, comment_text);
             res.json({ success: success });
         } catch (err) {
             res.status(500).json({ success: false, error: err.message });
@@ -43,10 +44,12 @@ class CommentController {
         }
     }          // DELETE - Remove comment
     static async replyToComment(req, res){
-        const { commentId, authorId, content } = req.body;
+        const commentId = req.params.id;
+        const authorId = req.user.user_id;
+        const { comment_text } = req.body;
         const db = DbService.getDbServiceInstance();
         try {
-            const data = await db.insertCommentReply(commentId, authorId, content);
+            const data = await db.insertCommentReply(commentId, authorId, comment_text);
             res.json({ success: true, data: data });
         } catch (err) {
             res.status(500).json({ success: false, error: err.message });

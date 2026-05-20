@@ -4,19 +4,22 @@ const bcrypt = require('bcrypt');
 
 dotenv.config();
 
-const connection = mysql.createConnection({
+const pool = mysql.createPool({
     host: process.env.DB_HOST,
     user: process.env.DB_USER,
     password: process.env.DB_PASS,
     database: process.env.DATABASE,
-    port: process.env.DB_PORT
+    port: process.env.DB_PORT,
+    waitForConnections: true,
+    connectionLimit: 10
 });
 
-connection.connect((err) => {
+pool.getConnection((err, conn) => {
     if (err) {
         console.log('❌ CONNECTION ERROR:', err.message);
     } else {
         console.log('✅ Database connected successfully!');
+        conn.release();
     }
 });
 
@@ -26,13 +29,13 @@ class DbService {
     }
 
     static getConnection() {
-        return connection;
+        return pool;
     }
 
     // Generic query method
     query(sql, params) {
         return new Promise((resolve, reject) => {
-            connection.query(sql, params, (err, results) => {
+            pool.query(sql, params, (err, results) => {
                 if (err) reject(err);
                 else resolve(results);
             });

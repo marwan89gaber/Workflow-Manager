@@ -2,10 +2,12 @@ const DbService = require('../dbService');
 
 class FileController {
     static async uploadFile(req, res){
-        const { taskId, fileName, filePath } = req.body;
+        const taskId = req.params.taskId;
+        const uploaded_by = req.user.user_id;
+        const { originalname: file_name, path: file_path, mimetype: file_type, size: file_size } = req.file;
         const db = DbService.getDbServiceInstance();
         try {
-            const data = await db.insertNewFile(taskId, fileName, filePath);
+            const data = await db.insertNewFile(taskId, uploaded_by, file_name, file_path, file_type, file_size);
             res.json({ success: true, data: data });
         } catch (err) {
             res.status(500).json({ success: false, error: err.message });
@@ -37,7 +39,7 @@ class FileController {
         try {
             const file = await db.getFileById(id);
             if (file) {
-                res.download(file.filePath, file.fileName);
+                res.download(file.file_path, file.file_name);
             } else {
                 res.status(404).json({ error: 'File not found' });
             }

@@ -195,16 +195,6 @@
         // Redirect if already logged in
         Auth.redirectIfAuthenticated();
 
-        const userData = {
-            first_name: firstName,
-            last_name: lastName,    
-            email,
-            password,
-            role,
-            department: department || null,
-            phone: phone || null
-        };
-
         const registerForm = document.getElementById('registerForm');
         const errorMessage = document.getElementById('errorMessage');
         const successMessage = document.getElementById('successMessage');

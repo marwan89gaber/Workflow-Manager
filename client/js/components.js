@@ -118,7 +118,12 @@ const Components = {
             `;
         } catch (error) {
             console.error('Error loading navbar:', error);
-            return this.renderNavbar();
+            return `
+                <nav class="navbar">
+                    <div class="navbar-left"><h1>WorkFlow Manager</h1></div>
+                    <div class="navbar-right"></div>
+                </nav>
+            `;
         }
     },
 

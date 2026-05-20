@@ -97,13 +97,9 @@ class UserController {
         const { id } = req.params;
         const db = DbService.getDbServiceInstance();
         try {
-            const allUsers = await db.getAllData();
-            const user = allUsers.find(user => user.id == id);
-            if (user) {
-                res.json({ data: user });
-            } else {
-                res.status(404).json({ error: 'User not found' });
-            }
+            const user = await db.getUserById(id);
+            if (!user) return res.status(404).json({ error: 'User not found' });
+            res.json({ data: user });
         } catch (err) {
             res.status(500).json({ error: err.message });
         }
@@ -172,10 +168,10 @@ class UserController {
     // UPDATE - Update user by ID
     static async updateUser(req, res) {
         const { id } = req.params;
-        const { name, email, role } = req.body;
+        const { first_name, last_name, email, department, phone } = req.body;
         const db = DbService.getDbServiceInstance();
         try {
-            const success = await db.updateUserById(id, name, email, role);
+            const success = await db.updateUserById(id, first_name, last_name, email, department, phone);
             res.json({ success: success });
         } catch (err) {
             res.status(500).json({ success: false, error: err.message });

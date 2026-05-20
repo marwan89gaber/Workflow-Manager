@@ -2,10 +2,11 @@ const DbService = require('../dbService');
 
 class NewsController {
     static async createNews(req, res){
-        const { title, content, authorId, isPinned } = req.body;
+        const { title, content, priority, target_audience, project_id } = req.body;
+        const posted_by = req.user.user_id;
         const db = DbService.getDbServiceInstance();
         try {
-            const data = await db.insertNewNews(title, content, authorId, isPinned);
+            const data = await db.insertNewNews(title, content, posted_by, priority, target_audience, project_id);
             res.json({ success: true, data: data });
         } catch (err) {
             res.status(500).json({ success: false, error: err.message });
@@ -66,10 +67,14 @@ class NewsController {
     }          // GET - Get pinned announcements
     static async togglePin(req, res){
         const { id } = req.params;
-        const { isPinned } = req.body;
         const db = DbService.getDbServiceInstance();
         try {
-            const success = await db.updateNewsPinStatus(id, isPinned);
+            const news = await db.getNewsById(id);
+            if (!news) {
+                return res.status(404).json({ success: false, error: 'News not found' });
+            }
+
+            const success = await db.updateNewsPinStatus(id, !news.is_pinned);
             res.json({ success: success });
         } catch (err) {
             res.status(500).json({ success: false, error: err.message });

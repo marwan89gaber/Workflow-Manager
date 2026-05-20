@@ -123,6 +123,7 @@ function setupDragAndDrop() {
     let draggedElement = null;
     let draggedTaskId = null;
     let originalStatus = null;
+    let wasDragging = false;
 
     // Handle drag start
     document.addEventListener('dragstart', (e) => {
@@ -140,6 +141,11 @@ function setupDragAndDrop() {
         if (e.target.classList.contains('task-card')) {
             e.target.classList.remove('dragging');
         }
+
+        wasDragging = true;
+        setTimeout(() => {
+            wasDragging = false;
+        }, 50);
     });
 
     // Handle drag over columns
@@ -185,6 +191,8 @@ function setupDragAndDrop() {
 
     // Click to view details
     document.addEventListener('click', (e) => {
+        if (wasDragging) return;
+
         const taskCard = e.target.closest('.task-card');
         if (taskCard && !e.target.closest('button')) {
             const taskId = taskCard.dataset.taskId;
