@@ -1,7 +1,3 @@
-# ============================================
-# WorkFlow Manager - .gitignore
-# ============================================
-
 # ---- Node.js / Server ----
 node_modules/
 server/node_modules/
