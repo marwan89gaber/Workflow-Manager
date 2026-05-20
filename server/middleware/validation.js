@@ -118,6 +118,7 @@ class ValidationMiddleware {
 
     static validateConversation() {
         return [
+            body('conversation_type').isIn(['direct', 'group', 'project_group']).withMessage('Invalid conversation type'),
             body('receiver_id').optional().trim(),
             body('project_id').optional().isInt()
         ];

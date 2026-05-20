@@ -17,12 +17,12 @@ router.get('/unread',
     NotificationController.getUnreadNotifications
 );
 
-router.put('/:id/read',
-    NotificationController.markAsRead
-);
-
 router.put('/read-all',
     NotificationController.markAllAsRead
+);
+
+router.put('/:id/read',
+    NotificationController.markAsRead
 );
 
 router.delete('/:id',

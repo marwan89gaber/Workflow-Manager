@@ -112,9 +112,7 @@ class TaskController {
     static async getOverdueTasks(req, res){
         const db = DbService.getDbServiceInstance();
         try {
-            const allTasks = await db.getAllTasks();
-            const currentDate = new Date();
-            const tasks = allTasks.filter(task => new Date(task.due_date) < currentDate && task.status !== 'done');
+            const tasks = await db.getOverdueTasks();
             res.json({ data: tasks });
         } catch (err) {
             res.status(500).json({ error: err.message });

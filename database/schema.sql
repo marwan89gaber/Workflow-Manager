@@ -743,12 +743,14 @@ INSERT INTO files (task_id, uploaded_by, file_name, file_path, file_type, file_s
 
 -- Insert direct conversation between manager and employee
 INSERT INTO conversations (conversation_type,conversation_name) VALUES 
-('direct', 'Mary & Mike'),
-('direct', 'Alice & Michael');
+('direct', 'Alice & Michael'),
+('direct', 'John & Bob');
 
 INSERT INTO conversation_participants (conversation_id, user_id) VALUES
 (9, 'mas001'),
-(8, 'mmb002');
+(9, 'mmb002'),
+(10, 'ajd001'),
+(10, 'ebj001');
 
 INSERT INTO messages (conversation_id, sender_id, message_text) VALUES 
 (1, 'mas001', 'Hi Mike, can you send me the latest project updates?'),

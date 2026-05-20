@@ -66,7 +66,8 @@ async function initChat() {
 
 async function loadConversations() {
     try {
-        conversations = await API.messages.getConversations();
+        const response = await API.messages.getConversations();
+        conversations = response.data || response || [];
         renderConversations();
     } catch (error) {
         console.error('Error loading conversations:', error);

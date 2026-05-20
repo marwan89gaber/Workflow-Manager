@@ -196,10 +196,8 @@ class UserController {
         const { status } = req.body;
         const db = DbService.getDbServiceInstance();
         try {
-            const allUsers = await db.getAllData();
-            const user = allUsers.find(user => user.id == id);
-            if (user) {
-                // Here we would update the status in the database
+            const success = await db.updateUserStatus(id, status);
+            if (success) {
                 res.json({ success: true, message: `User status updated to ${status}` });
             } else {
                 res.status(404).json({ success: false, error: 'User not found' });
@@ -215,13 +213,22 @@ class UserController {
         const { oldPassword, newPassword } = req.body;
         const db = DbService.getDbServiceInstance();
         try {
-            const allUsers = await db.getAllData();
-            const user = allUsers.find(user => user.id == id);
-            if (user) {
-                // Here we would verify the old password and update to the new password in the database
+            const user = await db.getUserById(id);
+            if (!user) {
+                res.status(404).json({ success: false, error: 'User not found' });
+                return;
+            }
+
+            const isPasswordValid = await bcrypt.compare(oldPassword, user.password);
+            if (!isPasswordValid) {
+                return res.status(401).json({ success: false, error: 'Invalid current password' });
+            }
+
+            const success = await db.updateUserPassword(id, newPassword);
+            if (success) {
                 res.json({ success: true, message: 'Password changed successfully' });
             } else {
-                res.status(404).json({ success: false, error: 'User not found' });
+                res.status(500).json({ success: false, error: 'Failed to change password' });
             }
         } catch (err) {
             res.status(500).json({ success: false, error: err.message });

@@ -331,6 +331,22 @@ class DbService {
         }
     }
 
+    async getOverdueTasks() {
+        try {
+            const query = `
+                SELECT *
+                FROM tasks
+                WHERE due_date < NOW()
+                  AND status != 'done';
+            `;
+            const results = await this.query(query);
+            return results;
+        } catch (error) {
+            console.log(error);
+            throw error;
+        }
+    }
+
     async getTaskById(id) {
         try {
             const query = "SELECT * FROM tasks WHERE task_id = ?;";
@@ -595,6 +611,10 @@ class DbService {
 
     async insertNewConversation(conversation_type, project_id = null) {
         try {
+            if (!['direct', 'project_group'].includes(conversation_type)) {
+                throw new Error('Invalid conversation type');
+            }
+
             const query = `
                 INSERT INTO conversations (conversation_type, project_id) 
                 VALUES (?, ?);

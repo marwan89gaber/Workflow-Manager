@@ -7,7 +7,16 @@ class MessageController {
         const db = DbService.getDbServiceInstance();
         
         try {
-            const data = await db.insertNewConversation(conversation_type, null);
+            const normalizedType = conversation_type === 'group' ? 'project_group' : conversation_type;
+
+            if (!['direct', 'project_group'].includes(normalizedType)) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Invalid conversation type'
+                });
+            }
+
+            const data = await db.insertNewConversation(normalizedType, req.body.project_id ?? null);
             const conversationId = data.conversation_id;
 
             await db.addConversationParticipant(conversationId, senderId);

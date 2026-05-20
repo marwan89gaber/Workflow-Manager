@@ -93,10 +93,10 @@ class ProjectController {
 
     // GET - Get all project members
     static async getProjectMembers(req, res)    {
-        const { projectId } = req.params;
+        const { id } = req.params;
         const db = DbService.getDbServiceInstance();
         try {
-            const data = await db.getProjectMembers(projectId);
+            const data = await db.getProjectMembers(id);
             res.json({ data: data });
         } catch (err) {
             res.status(500).json({ error: err.message });
