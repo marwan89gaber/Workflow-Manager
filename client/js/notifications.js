@@ -96,15 +96,15 @@ async function markNotificationRead(notificationId) {
 }
 
 async function deleteNotification(notificationId) {
-    if (!confirm('Delete this notification?')) return;
-
-    try {
-        await API.notifications.delete(notificationId);
-        Utils.showToast('Notification deleted', 'success');
-        await loadNotifications();
-    } catch (error) {
-        Utils.showToast('Failed to delete notification', 'error');
-    }
+    Utils.confirmAction('Are you sure you want to delete this notification?', async () => {
+        try {
+            await API.notifications.delete(notificationId);
+            Utils.showToast('Notification deleted', 'success');
+            await loadNotifications();
+        } catch (error) {
+            Utils.showToast('Failed to delete notification', 'error');
+        }
+    });
 }
 
 async function markAllAsRead() {

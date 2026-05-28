@@ -17,7 +17,7 @@ const pool = mysql.createPool({
 
 pool.getConnection((err, conn) => {
     if (err) {
-        console.log('❌ CONNECTION ERROR:', err.message);
+        console.error('❌ CONNECTION ERROR:', err.message);
     } else {
         console.log('✅ Database connected successfully!');
         conn.release();
@@ -53,7 +53,7 @@ class DbService {
             const results = await this.query(query);
             return results;
         } catch (error) {
-            console.log(error);
+            console.error('[DbService.getAllData]', error.message);
             throw error;
         }
     }
@@ -81,7 +81,7 @@ class DbService {
 
             return { user_id, first_name, last_name, email, role };
         } catch (error) {
-            console.log(error);
+            console.error('[DbService.insertNewUser]', error.message);
             throw error;
         }
     }
@@ -92,7 +92,7 @@ class DbService {
             const results = await this.query(query, [status]);
             return results;
         } catch (error) {
-            console.log(error);
+            console.error('[DbService.getUsersByStatus]', error.message);
             throw error;
         }
     }
@@ -103,7 +103,7 @@ class DbService {
             const result = await this.query(query, [role, id]);
             return result.affectedRows > 0;
         } catch (error) {
-            console.log(error);
+            console.error('[DbService.updateUserRole]', error.message);
             throw error;
         }
     }
@@ -114,7 +114,7 @@ class DbService {
             const results = await this.query(query, [email]);
             return results[0];
         } catch (error) {
-            console.log(error);
+            console.error('[DbService.getUserByEmail]', error.message);
             throw error;
         }
     }
@@ -125,7 +125,7 @@ class DbService {
             const results = await this.query(query, [user_id]);
             return results[0];
         } catch (error) {
-            console.log(error);
+            console.error('[DbService.getUserById]', error.message);
             throw error;
         }
     }
@@ -140,7 +140,7 @@ class DbService {
             const result = await this.query(query, [first_name, last_name, email, department, phone, id]);
             return result.affectedRows > 0;
         } catch (error) {
-            console.log(error);
+            console.error('[DbService.updateUserById]', error.message);
             throw error;
         }
     }
@@ -151,7 +151,7 @@ class DbService {
             const result = await this.query(query, [id]);
             return result.affectedRows > 0;
         } catch (error) {
-            console.log(error);
+            console.error('[DbService.deleteUserById]', error.message);
             throw error;
         }
     }
@@ -162,7 +162,7 @@ class DbService {
             const result = await this.query(query, [status, id]);
             return result.affectedRows > 0;
         } catch (error) {
-            console.log(error);
+            console.error('[DbService.updateUserStatus]', error.message);
             throw error;
         }
     }
@@ -174,7 +174,7 @@ class DbService {
             const result = await this.query(query, [hashedPassword, id]);
             return result.affectedRows > 0;
         } catch (error) {
-            console.log(error);
+            console.error('[DbService.updateUserPassword]', error.message);
             throw error;
         }
     }
@@ -192,7 +192,7 @@ class DbService {
             const result = await this.query(query, [project_name, description, created_by, start_date, end_date, priority]);
             return { project_id: result.insertId, project_name, description };
         } catch (error) {
-            console.log(error);
+            console.error('[DbService.insertNewProject]', error.message);
             throw error;
         }
     }
@@ -203,7 +203,7 @@ class DbService {
             const results = await this.query(query);
             return results;
         } catch (error) {
-            console.log(error);
+            console.error('[DbService.getAllProjects]', error.message);
             throw error;
         }
     }
@@ -214,7 +214,7 @@ class DbService {
             const results = await this.query(query, [id]);
             return results[0];
         } catch (error) {
-            console.log(error);
+            console.error('[DbService.getProjectById]', error.message);
             throw error;
         }
     }
@@ -229,7 +229,7 @@ class DbService {
             const result = await this.query(query, [project_name, description, start_date, end_date, id]);
             return result.affectedRows > 0;
         } catch (error) {
-            console.log(error);
+            console.error('[DbService.updateProjectById]', error.message);
             throw error;
         }
     }
@@ -240,7 +240,7 @@ class DbService {
             const result = await this.query(query, [id]);
             return result.affectedRows > 0;
         } catch (error) {
-            console.log(error);
+            console.error('[DbService.deleteProjectById]', error.message);
             throw error;
         }
     }
@@ -254,7 +254,7 @@ class DbService {
             const result = await this.query(query, [project_id, user_id, role_in_project]);
             return { member_id: result.insertId, project_id, user_id };
         } catch (error) {
-            console.log(error);
+            console.error('[DbService.addProjectMember]', error.message);
             throw error;
         }
     }
@@ -265,7 +265,7 @@ class DbService {
             const result = await this.query(query, [project_id, user_id]);
             return result.affectedRows > 0;
         } catch (error) {
-            console.log(error);
+            console.error('[DbService.removeProjectMember]', error.message);
             throw error;
         }
     }
@@ -281,7 +281,7 @@ class DbService {
             const results = await this.query(query, [project_id]);
             return results;
         } catch (error) {
-            console.log(error);
+            console.error('[DbService.getProjectMembers]', error.message);
             throw error;
         }
     }
@@ -294,7 +294,7 @@ class DbService {
             const results = await this.query(query, [project_id]);
             return results[0];
         } catch (error) {
-            console.log(error);
+            console.error('[DbService.getProjectProgress]', error.message);
             throw error;
         }
     }
@@ -305,7 +305,7 @@ class DbService {
             const result = await this.query(query, [status, project_id]);
             return result.affectedRows > 0;
         } catch (error) {
-            console.log(error);
+            console.error('[DbService.updateProjectStatus]', error.message);
             throw error;
         }
     }
@@ -320,7 +320,7 @@ class DbService {
             const results = await this.query(query, [user_id]);
             return results;
         } catch (error) {
-            console.log(error);
+            console.error('[DbService.getUserProjects]', error.message);
             throw error;
         }
     }
@@ -338,7 +338,7 @@ class DbService {
             const result = await this.query(query, [project_id, task_name, description, assigned_to, created_by, status, priority, due_date]);
             return { task_id: result.insertId, task_name, status };
         } catch (error) {
-            console.log(error);
+            console.error('[DbService.insertNewTask]', error.message);
             throw error;
         }
     }
@@ -349,7 +349,7 @@ class DbService {
             const results = await this.query(query);
             return results;
         } catch (error) {
-            console.log(error);
+            console.error('[DbService.getAllTasks]', error.message);
             throw error;
         }
     }
@@ -365,7 +365,7 @@ class DbService {
             const results = await this.query(query);
             return results;
         } catch (error) {
-            console.log(error);
+            console.error('[DbService.getOverdueTasks]', error.message);
             throw error;
         }
     }
@@ -376,7 +376,7 @@ class DbService {
             const results = await this.query(query, [id]);
             return results[0];
         } catch (error) {
-            console.log(error);
+            console.error('[DbService.getTaskById]', error.message);
             throw error;
         }
     }
@@ -391,7 +391,7 @@ class DbService {
             const result = await this.query(query, [task_name, description, status, priority, assigned_to, due_date, id]);
             return result.affectedRows > 0;
         } catch (error) {
-            console.log(error);
+            console.error('[DbService.updateTaskById]', error.message);
             throw error;
         }
     }
@@ -402,7 +402,7 @@ class DbService {
             const result = await this.query(query, [id]);
             return result.affectedRows > 0;
         } catch (error) {
-            console.log(error);
+            console.error('[DbService.deleteTaskById]', error.message);
             throw error;
         }
     }
@@ -413,7 +413,7 @@ class DbService {
             const result = await this.query(query, [status, id]);
             return result.affectedRows > 0;
         } catch (error) {
-            console.log(error);
+            console.error('[DbService.updateTaskStatusById]', error.message);
             throw error;
         }
     }
@@ -424,7 +424,7 @@ class DbService {
             const result = await this.query(query, [assigned_to, id]);
             return result.affectedRows > 0;
         } catch (error) {
-            console.log(error);
+            console.error('[DbService.assignTaskById]', error.message);
             throw error;
         }
     }
@@ -441,7 +441,7 @@ class DbService {
             const results = await this.query(query, [id]);
             return results;
         } catch (error) {
-            console.log(error);
+            console.error('[DbService.getTaskChangeHistoryById]', error.message);
             throw error;
         }
     }
@@ -452,7 +452,7 @@ class DbService {
             const result = await this.query(query, [priority, id]);
             return result.affectedRows > 0;
         } catch (error) {
-            console.log(error);
+            console.error('[DbService.updateTaskPriorityById]', error.message);
             throw error;
         }
     }
@@ -463,7 +463,7 @@ class DbService {
             const results = await this.query(query, [project_id]);
             return results;
         } catch (error) {
-            console.log(error);
+            console.error('[DbService.getTasksByProjectId]', error.message);
             throw error;
         }
     }
@@ -479,7 +479,7 @@ class DbService {
             const results = await this.query(query, [user_id]);
             return results;
         } catch (error) {
-            console.log(error);
+            console.error('[DbService.getTasksByUserId]', error.message);
             throw error;
         }
     }
@@ -495,7 +495,7 @@ class DbService {
             const results = await this.query(query, [manager_id]);
             return results;
         } catch (error) {
-            console.log(error);
+            console.error('[DbService.getTasksByManagerProjects]', error.message);
             throw error;
         }
     }
@@ -513,7 +513,7 @@ class DbService {
             const result = await this.query(query, [task_id, user_id, comment_text]);
             return { comment_id: result.insertId, task_id, comment_text };
         } catch (error) {
-            console.log(error);
+            console.error('[DbService.insertNewComment]', error.message);
             throw error;
         }
     }
@@ -530,7 +530,7 @@ class DbService {
             const results = await this.query(query, [task_id]);
             return results;
         } catch (error) {
-            console.log(error);
+            console.error('[DbService.getCommentsByTaskId]', error.message);
             throw error;
         }
     }
@@ -541,7 +541,7 @@ class DbService {
             const result = await this.query(query, [comment_text, id]);
             return result.affectedRows > 0;
         } catch (error) {
-            console.log(error);
+            console.error('[DbService.updateCommentById]', error.message);
             throw error;
         }
     }
@@ -552,7 +552,7 @@ class DbService {
             const result = await this.query(query, [id]);
             return result.affectedRows > 0;
         } catch (error) {
-            console.log(error);
+            console.error('[DbService.deleteCommentById]', error.message);
             throw error;
         }
     }
@@ -571,7 +571,7 @@ class DbService {
             const result = await this.query(query, [task_id, user_id, comment_text, parent_comment_id]);
             return { comment_id: result.insertId, parent_comment_id, comment_text };
         } catch (error) {
-            console.log(error);
+            console.error('[DbService.insertCommentReply]', error.message);
             throw error;
         }
     }
@@ -588,7 +588,7 @@ class DbService {
             const results = await this.query(query, [comment_id]);
             return results;
         } catch (error) {
-            console.log(error);
+            console.error('[DbService.getRepliesByCommentId]', error.message);
             throw error;
         }
     }
@@ -606,7 +606,7 @@ class DbService {
             const result = await this.query(query, [task_id, uploaded_by, file_name, file_path, file_type, file_size]);
             return { file_id: result.insertId, file_name };
         } catch (error) {
-            console.log(error);
+            console.error('[DbService.insertNewFile]', error.message);
             throw error;
         }
     }
@@ -622,7 +622,7 @@ class DbService {
             const results = await this.query(query, [task_id]);
             return results;
         } catch (error) {
-            console.log(error);
+            console.error('[DbService.getFilesByTaskId]', error.message);
             throw error;
         }
     }
@@ -633,7 +633,7 @@ class DbService {
             const results = await this.query(query, [id]);
             return results[0];
         } catch (error) {
-            console.log(error);
+            console.error('[DbService.getFileById]', error.message);
             throw error;
         }
     }
@@ -644,7 +644,7 @@ class DbService {
             const result = await this.query(query, [id]);
             return result.affectedRows > 0;
         } catch (error) {
-            console.log(error);
+            console.error('[DbService.deleteFileById]', error.message);
             throw error;
         }
     }
@@ -666,7 +666,7 @@ class DbService {
             const result = await this.query(query, [conversation_type, project_id]);
             return { conversation_id: result.insertId };
         } catch (error) {
-            console.log(error);
+            console.error('[DbService.insertNewConversation]', error.message);
             throw error;
         }
     }
@@ -680,7 +680,7 @@ class DbService {
             await this.query(query, [conversation_id, user_id]);
             return true;
         } catch (error) {
-            console.log(error);
+            console.error('[DbService.addConversationParticipant]', error.message);
             throw error;
         }
     }
@@ -697,7 +697,7 @@ class DbService {
             const results = await this.query(query, [user_id]);
             return results;
         } catch (error) {
-            console.log(error);
+            console.error('[DbService.getConversationsByUserId]', error.message);
             throw error;
         }
     }
@@ -714,7 +714,7 @@ class DbService {
             const results = await this.query(query, [conversation_id]);
             return results;
         } catch (error) {
-            console.log(error);
+            console.error('[DbService.getMessagesByConversationId]', error.message);
             throw error;
         }
     }
@@ -728,7 +728,7 @@ class DbService {
             const result = await this.query(query, [conversation_id, sender_id, message_text]);
             return { message_id: result.insertId, message_text };
         } catch (error) {
-            console.log(error);
+            console.error('[DbService.insertNewMessage]', error.message);
             throw error;
         }
     }
@@ -743,7 +743,7 @@ class DbService {
             const result = await this.query(query, [conversation_id, user_id]);
             return result.affectedRows > 0;
         } catch (error) {
-            console.log(error);
+            console.error('[DbService.markMessagesAsRead]', error.message);
             throw error;
         }
     }
@@ -759,7 +759,7 @@ class DbService {
             const results = await this.query(query, [user_id, user_id]);
             return results[0].count;
         } catch (error) {
-            console.log(error);
+            console.error('[DbService.getUnreadMessageCount]', error.message);
             throw error;
         }
     }
@@ -777,7 +777,7 @@ class DbService {
             const results = await this.query(query, [project_id]);
             return results;
         } catch (error) {
-            console.log(error);
+            console.error('[DbService.getProjectGroupMessages]', error.message);
             throw error;
         }
     }
@@ -796,7 +796,7 @@ class DbService {
             const results = await this.query(query, [user_id]);
             return results;
         } catch (error) {
-            console.log(error);
+            console.error('[DbService.getNotificationsByUserId]', error.message);
             throw error;
         }
     }
@@ -811,7 +811,7 @@ class DbService {
             const results = await this.query(query, [user_id]);
             return results;
         } catch (error) {
-            console.log(error);
+            console.error('[DbService.getUnreadNotificationsByUserId]', error.message);
             throw error;
         }
     }
@@ -822,7 +822,7 @@ class DbService {
             const result = await this.query(query, [notification_id]);
             return result.affectedRows > 0;
         } catch (error) {
-            console.log(error);
+            console.error('[DbService.markNotificationAsRead]', error.message);
             throw error;
         }
     }
@@ -833,7 +833,7 @@ class DbService {
             const result = await this.query(query, [user_id]);
             return result.affectedRows > 0;
         } catch (error) {
-            console.log(error);
+            console.error('[DbService.markAllNotificationsAsRead]', error.message);
             throw error;
         }
     }
@@ -844,7 +844,7 @@ class DbService {
             const result = await this.query(query, [notification_id]);
             return result.affectedRows > 0;
         } catch (error) {
-            console.log(error);
+            console.error('[DbService.deleteNotificationById]', error.message);
             throw error;
         }
     }
@@ -855,7 +855,7 @@ class DbService {
             const results = await this.query(query, [user_id]);
             return results[0].count;
         } catch (error) {
-            console.log(error);
+            console.error('[DbService.getUnreadNotificationCount]', error.message);
             throw error;
         }
     }
@@ -873,7 +873,7 @@ class DbService {
             const result = await this.query(query, [title, content, posted_by, priority, target_audience, project_id]);
             return { news_id: result.insertId, title };
         } catch (error) {
-            console.log(error);
+            console.error('[DbService.insertNewNews]', error.message);
             throw error;
         }
     }
@@ -889,7 +889,7 @@ class DbService {
             const results = await this.query(query);
             return results;
         } catch (error) {
-            console.log(error);
+            console.error('[DbService.getAllNews]', error.message);
             throw error;
         }
     }
@@ -900,7 +900,7 @@ class DbService {
             const results = await this.query(query, [id]);
             return results[0];
         } catch (error) {
-            console.log(error);
+            console.error('[DbService.getNewsById]', error.message);
             throw error;
         }
     }
@@ -915,7 +915,7 @@ class DbService {
             const result = await this.query(query, [title, content, id]);
             return result.affectedRows > 0;
         } catch (error) {
-            console.log(error);
+            console.error('[DbService.updateNewsById]', error.message);
             throw error;
         }
     }
@@ -926,7 +926,7 @@ class DbService {
             const result = await this.query(query, [id]);
             return result.affectedRows > 0;
         } catch (error) {
-            console.log(error);
+            console.error('[DbService.deleteNewsById]', error.message);
             throw error;
         }
     }
@@ -943,7 +943,7 @@ class DbService {
             const results = await this.query(query);
             return results;
         } catch (error) {
-            console.log(error);
+            console.error('[DbService.getPinnedNews]', error.message);
             throw error;
         }
     }
@@ -954,10 +954,177 @@ class DbService {
             const result = await this.query(query, [isPinned, id]);
             return result.affectedRows > 0;
         } catch (error) {
-            console.log(error);
+            console.error('[DbService.updateNewsPinStatus]', error.message);
             throw error;
         }
     }
+
+    async createReport(reportType, parameters) {
+        try {
+            const { start_date, end_date, project_id = null, user_id = null } = parameters;
+            const generated_by = parameters.generated_by;
+            const query = `
+                INSERT INTO reports (report_type, generated_by, project_id, user_id, start_date, end_date, report_data)
+                VALUES (?, ?, ?, ?, ?, ?, ?);
+            `;
+            const result = await this.query(query, [
+                reportType, generated_by, project_id, user_id,
+                start_date, end_date, JSON.stringify(parameters)
+            ]);
+            return { report_id: result.insertId, report_type: reportType };
+        } catch (error) {
+            console.error('[DbService.createReport]', error.message);
+            throw error;
+        }
+    }
+
+    async getAllReports() {
+        try {
+            const query = `
+                SELECT r.*, u.first_name, u.last_name
+                FROM reports r
+                JOIN users u ON r.generated_by = u.user_id
+                ORDER BY r.generated_at DESC;
+            `;
+            return await this.query(query);
+        } catch (error) {
+            console.error('[DbService.getAllReports]', error.message);
+            throw error;
+        }
+    }
+
+    async getReportById(id) {
+        try {
+            const query = "SELECT * FROM reports WHERE report_id = ?;";
+            const results = await this.query(query, [id]);
+            return results[0];
+        } catch (error) {
+            console.error('[DbService.getReportById]', error.message);
+            throw error;
+        }
+    }
+
+    async deleteReportById(id) {
+        try {
+            const query = "DELETE FROM reports WHERE report_id = ?;";
+            const result = await this.query(query, [id]);
+            return result.affectedRows > 0;
+        } catch (error) {
+            console.error('[DbService.deleteReportById]', error.message);
+            throw error;
+        }
+    }
+
+    async getTeamPerformanceStats() {
+        try {
+            const query = `
+                SELECT 
+                    u.user_id,
+                    u.first_name,
+                    u.last_name,
+                    u.department,
+                    COUNT(t.task_id) AS total_tasks,
+                    SUM(CASE WHEN t.status = 'done' THEN 1 ELSE 0 END) AS completed_tasks,
+                    SUM(CASE WHEN t.status = 'in_progress' THEN 1 ELSE 0 END) AS in_progress_tasks,
+                    SUM(CASE WHEN t.due_date < CURDATE() AND t.status != 'done' THEN 1 ELSE 0 END) AS overdue_tasks,
+                    ROUND(
+                        (SUM(CASE WHEN t.status = 'done' THEN 1 ELSE 0 END) / NULLIF(COUNT(t.task_id), 0)) * 100, 1
+                    ) AS completion_rate
+                FROM users u
+                LEFT JOIN tasks t ON u.user_id = t.assigned_to
+                WHERE u.status = 'active'
+                GROUP BY u.user_id, u.first_name, u.last_name, u.department
+                ORDER BY completion_rate DESC;
+            `;
+            return await this.query(query);
+        } catch (error) {
+            console.error('[DbService.getTeamPerformanceStats]', error.message);
+            throw error;
+        }
+    }
+
+    async getProjectStatusReport() {
+        try {
+            const query = `
+                SELECT 
+                p.project_id,
+                p.project_name,
+                p.status,
+                p.priority,
+                p.start_date,
+                p.end_date,
+                COUNT(t.task_id) AS total_tasks,
+                SUM(CASE WHEN t.status = 'done' THEN 1 ELSE 0 END) AS completed_tasks,
+                ROUND(
+                    (SUM(CASE WHEN t.status = 'done' THEN 1 ELSE 0 END) / NULLIF(COUNT(t.task_id), 0)) * 100, 1
+                ) AS completion_percentage,
+                COUNT(DISTINCT pm.user_id) AS team_size
+            FROM projects p
+            LEFT JOIN tasks t ON p.project_id = t.project_id
+            LEFT JOIN project_members pm ON p.project_id = pm.project_id
+            GROUP BY p.project_id, p.project_name, p.status, p.priority, p.start_date, p.end_date
+            ORDER BY p.status, completion_percentage DESC;
+            `;
+            return await this.query(query);
+        } catch (error) {
+            console.error('[DbService.getProjectStatusReport]', error.message);
+            throw error;
+        }
+    }
+
+    async getUserProductivityStats(user_id) {
+        try {
+            const query = `
+                SELECT 
+                    u.user_id,
+                    u.first_name,
+                    u.last_name,
+                    COUNT(t.task_id) AS total_tasks,
+                    SUM(CASE WHEN t.status = 'done' THEN 1 ELSE 0 END) AS completed_tasks,
+                    SUM(CASE WHEN t.status = 'in_progress' THEN 1 ELSE 0 END) AS in_progress_tasks,
+                    SUM(CASE WHEN t.status = 'todo' THEN 1 ELSE 0 END) AS todo_tasks,
+                    SUM(CASE WHEN t.due_date < CURDATE() AND t.status != 'done' THEN 1 ELSE 0 END) AS overdue_tasks,
+                    ROUND(SUM(COALESCE(t.actual_hours, 0)), 1) AS total_hours_logged,
+                    ROUND(
+                        (SUM(CASE WHEN t.status = 'done' THEN 1 ELSE 0 END) / NULLIF(COUNT(t.task_id), 0)) * 100, 1
+                    ) AS completion_rate
+                FROM users u
+                LEFT JOIN tasks t ON u.user_id = t.assigned_to
+                WHERE u.user_id = ?
+                GROUP BY u.user_id, u.first_name, u.last_name;
+            `;
+            const results = await this.query(query, [user_id]);
+            return results[0];
+        } catch (error) {
+            console.error('[DbService.getUserProductivityStats]', error.message);
+            throw error;
+        }
+    }
+
+    async getTaskCompletionStats() {
+        try {
+            const query = `
+                SELECT 
+                    COUNT(*) AS total_tasks,
+                    SUM(CASE WHEN status = 'done' THEN 1 ELSE 0 END) AS completed_tasks,
+                    SUM(CASE WHEN status = 'in_progress' THEN 1 ELSE 0 END) AS in_progress_tasks,
+                    SUM(CASE WHEN status = 'todo' THEN 1 ELSE 0 END) AS todo_tasks,
+                    SUM(CASE WHEN status = 'in_review' THEN 1 ELSE 0 END) AS in_review_tasks,
+                    SUM(CASE WHEN due_date < CURDATE() AND status != 'done' THEN 1 ELSE 0 END) AS overdue_tasks,
+                    SUM(CASE WHEN priority = 'critical' AND status != 'done' THEN 1 ELSE 0 END) AS critical_open_tasks,
+                    ROUND(
+                        (SUM(CASE WHEN status = 'done' THEN 1 ELSE 0 END) / NULLIF(COUNT(*), 0)) * 100, 1
+                    ) AS overall_completion_rate
+                FROM tasks;
+            `;
+            const results = await this.query(query);
+            return results[0];
+        } catch (error) {
+            console.error('[DbService.getTaskCompletionStats]', error.message);
+            throw error;
+        }
+    }
+
 
 }
 

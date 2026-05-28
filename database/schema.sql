@@ -371,22 +371,26 @@ DELIMITER ;
 -- ============================================
 DELIMITER //
 
+DROP TRIGGER IF EXISTS after_task_update;
+
+DELIMITER //
+
 CREATE TRIGGER after_task_update
 AFTER UPDATE ON tasks
 FOR EACH ROW
 BEGIN
-    -- Track status changes
-    IF OLD.status != NEW.status THEN
+
+    -- Status change
+    IF NOT (OLD.status <=> NEW.status) THEN
         INSERT INTO task_history (task_id, changed_by, field_changed, old_value, new_value)
         VALUES (NEW.task_id, NEW.assigned_to, 'status', OLD.status, NEW.status);
     END IF;
-    
-    -- Track assignment changes
-    IF OLD.assigned_to != NEW.assigned_to THEN
+
+    -- Assignment change
+    IF NOT (OLD.assigned_to <=> NEW.assigned_to) THEN
         INSERT INTO task_history (task_id, changed_by, field_changed, old_value, new_value)
         VALUES (NEW.task_id, NEW.assigned_to, 'assigned_to', OLD.assigned_to, NEW.assigned_to);
-        
-        -- Create notification for new assignee
+
         IF NEW.assigned_to IS NOT NULL THEN
             INSERT INTO notifications (user_id, notification_type, related_id, related_type, message)
             VALUES (
@@ -398,12 +402,13 @@ BEGIN
             );
         END IF;
     END IF;
-    
-    -- Track priority changes
-    IF OLD.priority != NEW.priority THEN
+
+    -- Priority change
+    IF NOT (OLD.priority <=> NEW.priority) THEN
         INSERT INTO task_history (task_id, changed_by, field_changed, old_value, new_value)
         VALUES (NEW.task_id, NEW.assigned_to, 'priority', OLD.priority, NEW.priority);
     END IF;
+
 END //
 
 DELIMITER ;

@@ -256,13 +256,13 @@ async function sendMessage(event, projectId) {
 }
 
 async function deleteProject() {
-    if (!confirm('Are you sure you want to delete this project? This action cannot be undone.')) return;
-
-    try {
-        await API.projects.delete(projectData.project.project_id);
-        Utils.showToast('Project deleted successfully', 'success');
-        window.location.href = 'projects.html';
-    } catch (error) {
-        Utils.showToast('Failed to delete project', 'error');
-    }
+    Utils.confirmAction('Are you sure you want to delete this project? This action cannot be undone.', async () => {
+        try {
+            await API.projects.delete(projectData.project.project_id);
+            Utils.showToast('Project deleted', 'success');
+            window.location.href = 'projects.html';
+        } catch (error) {
+            Utils.showToast('Failed to delete project', 'error');
+        }
+    });
 }

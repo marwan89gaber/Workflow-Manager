@@ -110,8 +110,6 @@ class TaskController {
         const db = DbService.getDbServiceInstance();
         try {
             const data = await db.getTasksByUserId(userId);
-            //console.log('📋 Retrieved tasks for user:', userId, 'Count:', data.length);
-            //console.log('data sample:', data.slice(0,2));
             res.json(data);
         } catch (err) {
             console.error('❌ Error getting tasks for user:', err);

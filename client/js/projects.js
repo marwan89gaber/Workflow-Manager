@@ -368,18 +368,11 @@ async function updateProject(event, projectId) {
 }
 
 async function deleteProject(projectId) {
-    if (!confirm('Are you sure you want to delete this project? This will also delete all associated tasks.')) {
-        return;
-    }
-
-    try {
+    Utils.confirmAction('Are you sure you want to delete this project? This cannot be undone.', async () => {
         await API.projects.delete(projectId);
-        Utils.showToast('Project deleted successfully', 'success');
+        Utils.showToast('Project deleted', 'success');
         await loadProjects();
-    } catch (error) {
-        console.error('Error deleting project:', error);
-        Utils.showToast('Failed to delete project', 'error');
-    }
+    });
 }
 
 function closeModal(modalId) {

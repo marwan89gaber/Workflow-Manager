@@ -244,5 +244,62 @@ const Utils = {
             (result[item[key]] = result[item[key]] || []).push(item);
             return result;
         }, {});
+    },
+
+    // Reusable confirm modal
+    confirmAction(message, onConfirm) {
+        const existing = document.getElementById('confirmModal');
+        if (existing) existing.remove();
+
+        const modal = document.createElement('div');
+        modal.id = 'confirmModal';
+        modal.className = 'modal show';
+        modal.innerHTML = `
+            <div class="modal-content" style="max-width: 400px;">
+                <div class="modal-header">
+                    <h2 style="font-size: 1.125rem;">Confirm Action</h2>
+                </div>
+                <p style="margin-bottom: 1.5rem; color: var(--secondary);">${message}</p>
+                <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
+                    <button class="btn btn-secondary" id="confirmCancel">Cancel</button>
+                    <button class="btn btn-danger" id="confirmOk">Confirm</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+
+        document.getElementById('confirmOk').onclick = () => {
+            modal.remove();
+            onConfirm();
+        };
+        document.getElementById('confirmCancel').onclick = () => modal.remove();
+        modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+    },
+
+    // Reusable select modal
+    promptSelect(title, options, onSelect) {
+        const existing = document.getElementById('promptModal');
+        if (existing) existing.remove();
+
+        const modal = document.createElement('div');
+        modal.id = 'promptModal';
+        modal.className = 'modal show';
+        modal.innerHTML = `
+            <div class="modal-content" style="max-width: 400px;">
+                <div class="modal-header">
+                    <h2 style="font-size: 1.125rem;">${title}</h2>
+                    <button class="modal-close" onclick="document.getElementById('promptModal').remove()">×</button>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                    ${options.map(opt => `
+                        <button class="btn btn-secondary" style="text-align: left;" 
+                            onclick="document.getElementById('promptModal').remove(); (${onSelect.toString()})('${opt.value}')">
+                            ${opt.label}
+                        </button>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
     }
 };

@@ -6,30 +6,18 @@ class UserController {
 
     // Create - Register a new user
     static async register(req, res) {
-        console.log('📥 Request body:', req.body);
-        
         const { first_name, last_name, email, password, role, department, phone } = req.body;
 
         if (role === 'admin') {
             return res.status(403).json({ success: false, message: 'Admin accounts cannot self-register' });
         }
         
-        console.log('📝 Extracted values:', {
-            first_name,
-            last_name,
-            email,
-            password: password ? '***' : 'UNDEFINED',
-            role,
-            department,
-            phone
-        });
-        
         const db = DbService.getDbServiceInstance();
         try {
             const data = await db.insertNewUser(first_name, last_name, email, password, role, department, phone, 'pending');
             res.json({ success: true, data: data });
         } catch (err) {
-            console.error('❌ Error:', err.message);
+            console.error('[UserController.register]', err.message);
             res.status(500).json({ success: false, error: err.message });
         }
     }
@@ -38,33 +26,14 @@ class UserController {
     static async login(req, res) {
         const { email, password } = req.body;
         const db = DbService.getDbServiceInstance();
-        
-        console.log('🔐 Login attempt:', { email, password: password ? '***' : 'UNDEFINED' });
-        
+                
         try {
             const user = await db.getUserByEmail(email);
-            
-            console.log('👤 User found:', user ? 'YES' : 'NO');
-            
+                        
             if (!user) {
-                console.log('❌ User not found in database');
                 return res.status(404).json({ success: false, message: 'User not found' });
             }
-
-            console.log('🔑 Comparing passwords...');
-            console.log('Stored hash:', user.password);
-            console.log('Input password:', password);
             
-            // Verify password
-            const isPasswordValid = await bcrypt.compare(password, user.password);
-            
-            console.log('✅ Password valid:', isPasswordValid);
-            
-            if (!isPasswordValid) {
-                console.log('❌ Password mismatch');
-                return res.status(401).json({ success: false, message: 'Invalid password' });
-            }
-
             if (user.status === 'pending') {
                 return res.status(403).json({
                     success: false,
@@ -74,20 +43,17 @@ class UserController {
 
             // Generate token
             const token = AuthMiddleware.generateToken(user);
-            console.log('🎫 Token generated');
 
             // Remove password from response
             const { password: _, ...userWithoutPassword } = user;
 
-            console.log('✅ Login successful');
             res.json({ 
                 success: true, 
                 token: token,
                 user: userWithoutPassword 
             });
         } catch (err) {
-            console.error('❌ Login error:', err.message);
-            console.error('Stack:', err.stack);
+            console.error('[UserController.login]', err.message);
             res.status(500).json({ success: false, error: err.message });
         }
     }
@@ -100,6 +66,7 @@ class UserController {
             const data = status ? await db.getUsersByStatus(status) : await db.getAllData();
             res.json({ data: data });
         } catch (err) {
+            console.error('[UserController.getAllUsers]', err.message);
             res.status(500).json({ error: err.message });
         }
     }
@@ -110,9 +77,13 @@ class UserController {
         const db = DbService.getDbServiceInstance();
         try {
             const user = await db.getUserById(id);
-            if (!user) return res.status(404).json({ error: 'User not found' });
+            if (!user) {
+                console.error('[UserController.getUserById] User not found:', id);
+                return res.status(404).json({ error: 'User not found' });
+            }
             res.json({ data: user });
         } catch (err) {
+            console.error('[UserController.getUserById]', err.message);
             res.status(500).json({ error: err.message });
         }
     }
@@ -121,27 +92,21 @@ class UserController {
     static async getUserDashboard(req, res) {
         const { id } = req.params;
         const db = DbService.getDbServiceInstance();
-        
-        console.log('📊 Getting dashboard for user:', id);
-        
+                
         try {
             // Get user by ID
             const user = await db.getUserById(id);
             
             if (!user) {
-                console.log('❌ User not found:', id);
+                console.error('[UserController.getUserDashboard] User not found:', id);
                 return res.status(404).json({ error: 'User not found' });
             }
             
-            //console.log('✅ User found:', user.user_id);
-
             // Get user's tasks
             const tasks = await db.getTasksByUserId(id);
-            //console.log('📋 Tasks found:', tasks.length);
             
             // Get user's projects
             const projects = await db.getUserProjects(id);
-            //console.log('📁 Projects found:', projects.length);
 
             // Calculate statistics
             const totalTasks = tasks.length;
@@ -168,11 +133,10 @@ class UserController {
                 }
             };
             
-            //console.log('✅ Dashboard data prepared:', dashboardData);
             res.json({ data: dashboardData });
             
         } catch (err) {
-            console.error('❌ Dashboard error:', err);
+            console.error('[UserController.getUserDashboard] Dashboard error:', err);
             res.status(500).json({ error: err.message });
         }
     }
@@ -186,6 +150,7 @@ class UserController {
             const success = await db.updateUserById(id, first_name, last_name, email, department, phone);
             res.json({ success: success });
         } catch (err) {
+            console.error('[UserController.updateUser]', err.message);
             res.status(500).json({ success: false, error: err.message });
         }
     }

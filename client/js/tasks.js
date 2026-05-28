@@ -167,17 +167,20 @@ async function showTaskDetail(taskId) {
         console.log('🔍 Loading task details for ID:', taskId);
         
         // Load task
-        const task = await API.tasks.getById(taskId);
+        const taskResponse = await API.tasks.getById(taskId);
+        const task = taskResponse.data || taskResponse; 
         console.log('✅ Task loaded:', task);
         
         // Load comments
-        const comments = await API.comments.getByTask(taskId);
+        const commentsResponse = await API.comments.getByTask(taskId);
+        const comments = commentsResponse.data || commentsResponse;
         console.log('✅ Comments loaded:', comments);
         console.log('🔍 Comments is array?', Array.isArray(comments));
         console.log('🔍 Comments length:', comments?.length);
         
         // Load files
-        const files = await API.files.getByTask(taskId);
+        const filesResponse = await API.files.getByTask(taskId);
+        const files = filesResponse.data || filesResponse;
         console.log('✅ Files loaded:', files);
         console.log('🔍 Files is array?', Array.isArray(files));
         console.log('🔍 Files length:', files?.length);
@@ -303,24 +306,32 @@ async function updateTaskStatus(taskId) {
             const fileList = Array.isArray(files) ? files : (files?.data || []);
 
             if (!fileList.length) {
-                Utils.showToast('You must upload a file before submitting for review', 'warning');
+                Utils.showToast('Upload a file before submitting for review', 'warning');
                 return;
             }
 
-            await API.tasks.updateStatus(taskId, 'in_review');
-            Utils.showToast('Task submitted for review', 'success');
+            Utils.confirmAction(
+                'Submit this task for manager review?',
+                async () => {
+                    await API.tasks.updateStatus(taskId, 'in_review');
+                    Utils.showToast('Task submitted for review', 'success');
+                    await loadTasks();
+                }
+            );
+            return;
+        }
+
+        Utils.promptSelect('Update task status', [
+            { value: 'todo',        label: '📋 To Do' },
+            { value: 'in_progress', label: '🔄 In Progress' },
+            { value: 'in_review',   label: '👀 In Review' },
+            { value: 'done',        label: '✅ Done' }
+        ], async (newStatus) => {
+            await API.tasks.updateStatus(taskId, newStatus);
+            Utils.showToast('Task status updated', 'success');
             await loadTasks();
-            return;
-        }
+        });
 
-        const newStatus = prompt('Enter new status (todo, in_progress, in_review, done):');
-        if (!newStatus || !['todo', 'in_progress', 'in_review', 'done'].includes(newStatus)) {
-            return;
-        }
-
-        await API.tasks.updateStatus(taskId, newStatus);
-        Utils.showToast('Task status updated', 'success');
-        await loadTasks();
     } catch (error) {
         Utils.showToast('Failed to update status', 'error');
     }
@@ -360,13 +371,13 @@ async function uploadFile(event, taskId) {
 }
 
 async function deleteFile(fileId, taskId) {
-    if (!confirm('Delete this file?')) return;
-
-    try {
-        await API.files.delete(fileId);
-        await showTaskDetail(taskId);
-        Utils.showToast('File deleted', 'success');
-    } catch (error) {
-        Utils.showToast('Failed to delete file', 'error');
-    }
+    Utils.confirmAction('Are you sure you want to delete this file?', async () => {
+        try {
+            await API.files.delete(fileId);
+            await showTaskDetail(taskId);
+            Utils.showToast('File deleted', 'success');
+        } catch (error) {
+            Utils.showToast('Failed to delete file', 'error');
+        }
+    });
 }

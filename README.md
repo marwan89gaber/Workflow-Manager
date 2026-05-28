@@ -558,7 +558,6 @@ workflow-manager/
 │   │   ├── project-detail.js
 │   │   ├── tasks.js
 │   │   ├── task-board.js
-│   │   ├── task-detail.js
 │   │   ├── chat.js
 │   │   ├── notifications.js
 │   │   ├── profile.js

@@ -5,7 +5,7 @@ class ReportController {
         const { reportType, parameters } = req.body;
         const db = DbService.getDbServiceInstance();
         try {
-            const data = await db.createReport(reportType, parameters);
+            const data = await db.createReport(reportType, { ...parameters, generated_by: req.user.user_id });
             res.json({ success: true, data: data });
         } catch (err) {
             res.status(500).json({ success: false, error: err.message });
