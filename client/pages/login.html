@@ -138,12 +138,8 @@
             try {
                 const response = await API.auth.login(email, password);
                 
-                if (response.success && response.token) {
-                    // Save token and user data
-                    Auth.setToken(response.token);
+                if (response.success && response.user) {
                     Auth.setUser(response.user);
-                    
-                    // Show success and redirect
                     Utils.showToast('Login successful!', 'success');
                     setTimeout(() => {
                         window.location.href = 'dashboard.html';

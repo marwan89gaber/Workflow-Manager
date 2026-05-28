@@ -72,4 +72,8 @@ router.put('/:id/password',
     UserController.changePassword
 );
 
+router.post('/logout',
+    UserController.logout
+);
+
 module.exports = router;

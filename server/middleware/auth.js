@@ -3,77 +3,86 @@
 // ==========================================
 const jwt = require('jsonwebtoken');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-this';
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+    throw new Error('FATAL: JWT_SECRET environment variable is not set');
+}
+
+const COOKIE_OPTIONS = {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production',
+    maxAge: 24 * 60 * 60 * 1000  // 24 hours in ms
+};
 
 class AuthMiddleware {
-    // Verify JWT token and attach user info to request
     static authenticateToken(req, res, next) {
         try {
-            // Get token from header
-            const authHeader = req.headers['authorization'];
-            const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
+            const token = req.cookies?.token;
 
             if (!token) {
-                return res.status(401).json({ 
-                    success: false, 
-                    message: 'Access token required' 
+                return res.status(401).json({
+                    success: false,
+                    message: 'Not authenticated'
                 });
             }
 
-            // Verify token
             jwt.verify(token, JWT_SECRET, (err, user) => {
                 if (err) {
-                    return res.status(403).json({ 
-                        success: false, 
-                        message: 'Invalid or expired token' 
+                    res.clearCookie('token');
+                    return res.status(401).json({
+                        success: false,
+                        message: 'Session expired, please log in again'
                     });
                 }
-
-                // Attach user info to request
                 req.user = user;
                 next();
             });
         } catch (error) {
-            return res.status(500).json({ 
-                success: false, 
-                message: 'Authentication error',
-                error: error.message 
+            return res.status(500).json({
+                success: false,
+                message: 'Authentication error'
             });
         }
     }
 
-    // Check if user has required role
     static authorizeRole(...roles) {
         return (req, res, next) => {
             if (!req.user) {
-                return res.status(401).json({ 
-                    success: false, 
-                    message: 'User not authenticated' 
+                return res.status(401).json({
+                    success: false,
+                    message: 'Not authenticated'
                 });
             }
-
             if (!roles.includes(req.user.role)) {
-                return res.status(403).json({ 
-                    success: false, 
-                    message: 'Insufficient permissions' 
+                return res.status(403).json({
+                    success: false,
+                    message: 'Insufficient permissions'
                 });
             }
-
             next();
         };
     }
 
-    // Generate JWT token
     static generateToken(user) {
         return jwt.sign(
-            { 
-                user_id: user.user_id, 
-                email: user.email, 
-                role: user.role 
+            {
+                user_id: user.user_id,
+                email: user.email,
+                role: user.role
             },
             JWT_SECRET,
             { expiresIn: '24h' }
         );
+    }
+
+    static setCookieToken(res, user) {
+        const token = AuthMiddleware.generateToken(user);
+        res.cookie('token', token, COOKIE_OPTIONS);
+    }
+
+    static clearCookieToken(res) {
+        res.clearCookie('token', { httpOnly: true, sameSite: 'lax' });
     }
 }
 

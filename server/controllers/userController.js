@@ -26,14 +26,19 @@ class UserController {
     static async login(req, res) {
         const { email, password } = req.body;
         const db = DbService.getDbServiceInstance();
-                
+
         try {
             const user = await db.getUserByEmail(email);
-                        
+
             if (!user) {
                 return res.status(404).json({ success: false, message: 'User not found' });
             }
-            
+
+            const isPasswordValid = await bcrypt.compare(password, user.password);
+            if (!isPasswordValid) {
+                return res.status(401).json({ success: false, message: 'Invalid password' });
+            }
+
             if (user.status === 'pending') {
                 return res.status(403).json({
                     success: false,
@@ -41,20 +46,26 @@ class UserController {
                 });
             }
 
-            // Generate token
-            const token = AuthMiddleware.generateToken(user);
+            if (user.status === 'inactive') {
+                return res.status(403).json({
+                    success: false,
+                    message: 'Your account has been deactivated'
+                });
+            }
 
-            // Remove password from response
+            // Set token in httpOnly cookie — NOT in response body
+            AuthMiddleware.setCookieToken(res, user);
+
             const { password: _, ...userWithoutPassword } = user;
 
-            res.json({ 
-                success: true, 
-                token: token,
-                user: userWithoutPassword 
+            res.json({
+                success: true,
+                user: userWithoutPassword
+                // No token in the response body
             });
         } catch (err) {
             console.error('[UserController.login]', err.message);
-            res.status(500).json({ success: false, error: err.message });
+            res.status(500).json({ success: false, message: 'Login failed' });
         }
     }
 
@@ -144,14 +155,21 @@ class UserController {
     // UPDATE - Update user by ID
     static async updateUser(req, res) {
         const { id } = req.params;
-        const { first_name, last_name, email, department, phone } = req.body;
+        const requestingUser = req.user;
         const db = DbService.getDbServiceInstance();
+
+        if (requestingUser.user_id !== parseInt(id) && !['admin', 'manager'].includes(requestingUser.role)) {
+            return res.status(403).json({ success: false, message: 'You can only update your own profile' });
+        }
+
+        const { first_name, last_name, email, role, department, phone } = req.body;
+
         try {
             const success = await db.updateUserById(id, first_name, last_name, email, department, phone);
             res.json({ success: success });
         } catch (err) {
             console.error('[UserController.updateUser]', err.message);
-            res.status(500).json({ success: false, error: err.message });
+            res.status(500).json({ success: false, message: 'Update failed' });
         }
     }
 
@@ -163,7 +181,8 @@ class UserController {
             const success = await db.deleteUserById(id);
             res.json({ success: success });
         } catch (err) {
-            res.status(500).json({ success: false, error: err.message });
+            console.error('[UserController.deleteUser]', err.message);
+            res.status(500).json({ success: false, message: 'Delete failed' });
         }
     }
 
@@ -177,10 +196,11 @@ class UserController {
             if (success) {
                 res.json({ success: true, message: `User status updated to ${status}` });
             } else {
-                res.status(404).json({ success: false, error: 'User not found' });
+                res.status(404).json({ success: false, message: 'User not found' });
             }
         } catch (err) {
-            res.status(500).json({ success: false, error: err.message });
+            console.error('[UserController.updateUserStatus]', err.message);
+            res.status(500).json({ success: false, message: 'Failed to update user status' });
         }
     }
 
@@ -193,10 +213,11 @@ class UserController {
             if (success) {
                 res.json({ success: true, message: 'User approved successfully' });
             } else {
-                res.status(404).json({ success: false, error: 'User not found' });
+                res.status(404).json({ success: false, message: 'User not found' });
             }
         } catch (err) {
-            res.status(500).json({ success: false, error: err.message });
+            console.error('[UserController.approveUser]', err.message);
+            res.status(500).json({ success: false, message: 'Failed to approve user' });
         }
     }
 
@@ -207,50 +228,69 @@ class UserController {
         try {
             const user = await db.getUserById(id);
             if (!user) {
-                return res.status(404).json({ success: false, error: 'User not found' });
+                return res.status(404).json({ success: false, message: 'User not found' });
             }
 
             if (user.role !== 'employee') {
-                return res.status(400).json({ success: false, error: 'Only employees can be promoted' });
+                return res.status(400).json({ success: false, message: 'Only employees can be promoted' });
             }
 
             const success = await db.updateUserRole(id, 'manager');
             if (success) {
                 res.json({ success: true, message: 'User promoted to manager' });
             } else {
-                res.status(500).json({ success: false, error: 'Failed to promote user' });
+                res.status(500).json({ success: false, message: 'Failed to promote user' });
             }
         } catch (err) {
-            res.status(500).json({ success: false, error: err.message });
+            console.error('[UserController.promoteUser]', err.message);
+            res.status(500).json({ success: false, message: 'Failed to promote user' });
         }
     }
 
     // Change User Password
     static async changePassword(req, res) {
         const { id } = req.params;
+        const requestingUser = req.user;
+
+        // Users can only change their own password
+        if (requestingUser.user_id !== id) {
+            return res.status(403).json({
+                success: false,
+                message: 'You can only change your own password'
+            });
+        }
+
         const { oldPassword, newPassword } = req.body;
         const db = DbService.getDbServiceInstance();
+
         try {
             const user = await db.getUserById(id);
             if (!user) {
-                res.status(404).json({ success: false, error: 'User not found' });
-                return;
+                return res.status(404).json({ success: false, message: 'User not found' });
             }
 
             const isPasswordValid = await bcrypt.compare(oldPassword, user.password);
             if (!isPasswordValid) {
-                return res.status(401).json({ success: false, error: 'Invalid current password' });
+                return res.status(401).json({ success: false, message: 'Current password is incorrect' });
+            }
+
+            if (newPassword.length < 6) {
+                return res.status(400).json({ success: false, message: 'New password must be at least 6 characters' });
             }
 
             const success = await db.updateUserPassword(id, newPassword);
-            if (success) {
-                res.json({ success: true, message: 'Password changed successfully' });
-            } else {
-                res.status(500).json({ success: false, error: 'Failed to change password' });
-            }
+            res.json({ success, message: 'Password changed successfully' });
         } catch (err) {
-            res.status(500).json({ success: false, error: err.message });
+            console.error('[UserController.changePassword]', err.message);
+            res.status(500).json({ success: false, message: 'Password change failed' });
         }
+    }
+
+
+    // Logout - Clear token cookie
+    static async logout(req, res) {
+        AuthMiddleware.clearCookieToken(res);
+        res.json({ success: true, message: 'Logged out successfully' });
     }
 
 }

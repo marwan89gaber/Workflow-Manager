@@ -1,14 +1,46 @@
 const express = require('express');
 const cors = require('cors');
+const cookieParser = require('cookie-parser');
 const dotenv = require('dotenv');
 const path = require('path');
+const rateLimit = require('express-rate-limit');
+const helmet = require('helmet');
 
 dotenv.config({ path: path.join(__dirname, '.env') });
 
 const app = express();
+app.use(helmet());
+
+// Strict limiter — auth routes only
+const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,  // 15 minutes
+    max: 10,
+    message: {
+        success: false,
+        message: 'Too many attempts. Please try again in 15 minutes.'
+    },
+    standardHeaders: true,
+    legacyHeaders: false
+});
+
+// General limiter — all API routes
+const generalLimiter = rateLimit({
+    windowMs: 60 * 1000,  // 1 minute
+    max: 100,
+    message: {
+        success: false,
+        message: 'Too many requests. Please slow down.'
+    }
+});
 
 // Middleware
-app.use(cors());
+app.use(cors({
+    origin: process.env.CLIENT_URL || 'http://127.0.0.1:5500',
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    allowedHeaders: ['Content-Type']
+}));
+app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -33,6 +65,9 @@ app.use('/api/messages', messageRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/news', newsRoutes);
 app.use('/api/reports', reportRoutes);
+app.use('/api', generalLimiter);  // Apply general rate limiter to all API routes
+app.use('/api/users/login', authLimiter);  // Apply strict limiter to login route
+app.use('/api/users/register', authLimiter);  // Apply strict limiter to registration route
 
 // Error handling
 app.use((err, req, res, next) => {

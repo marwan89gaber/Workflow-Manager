@@ -63,10 +63,9 @@
     <script>
         // Check authentication and redirect
         setTimeout(() => {
-            const token = localStorage.getItem('auth_token');
             const user = localStorage.getItem('user_data');
             
-            if (token && user) {
+            if (user) {
                 // User is logged in, go to dashboard
                 window.location.href = 'pages/dashboard.html';
             } else {

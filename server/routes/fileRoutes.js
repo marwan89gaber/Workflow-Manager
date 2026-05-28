@@ -12,6 +12,7 @@ router.use(auth.authenticateToken);
 
 router.post('/task/:taskId',
     upload.single('file'),
+    upload.verifyFileMagicBytes,
     FileController.uploadFile
 );
 

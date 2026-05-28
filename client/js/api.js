@@ -6,20 +6,12 @@ const API = {
     // Generic request handler
     async request(endpoint, options = {}) {
         const url = `${CONFIG.API_BASE_URL}${endpoint}`;
-        const token = Auth.getToken();
-
-        const defaultHeaders = {
-            'Content-Type': 'application/json'
-        };
-
-        if (token) {
-            defaultHeaders['Authorization'] = `Bearer ${token}`;
-        }
 
         const config = {
             ...options,
+            credentials: 'include',   // sends the httpOnly cookie automatically
             headers: {
-                ...defaultHeaders,
+                'Content-Type': 'application/json',
                 ...options.headers
             }
         };
@@ -31,14 +23,16 @@ const API = {
             if (!response.ok) {
                 if (response.status === 401) {
                     window.dispatchEvent(new Event('unauthorized'));
-                    throw new Error('Session expired. Please login again.');
+                    throw new Error('Session expired. Please log in again.');
                 }
-                throw new Error(data.message || `HTTP error! status: ${response.status}`);
+                throw new Error(data.message || `HTTP error ${response.status}`);
             }
 
             return data;
         } catch (error) {
-            console.error('API Error:', error);
+            if (!error.message.includes('Session expired')) {
+                console.error(`[API] ${endpoint}:`, error.message);
+            }
             throw error;
         }
     },
@@ -67,15 +61,13 @@ const API = {
 
     async upload(endpoint, formData) {
         const url = `${CONFIG.API_BASE_URL}${endpoint}`;
-        const token = Auth.getToken();
 
         try {
             const response = await fetch(url, {
                 method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                },
+                credentials: 'include',   // cookies here too
                 body: formData
+                // No Content-Type header — browser sets it with boundary for FormData
             });
 
             const data = await response.json();
@@ -83,17 +75,18 @@ const API = {
             if (!response.ok) {
                 if (response.status === 401) {
                     window.dispatchEvent(new Event('unauthorized'));
-                    throw new Error('Session expired. Please login again.');
+                    throw new Error('Session expired. Please log in again.');
                 }
                 throw new Error(data.message || 'Upload failed');
             }
 
             return data;
         } catch (error) {
-            console.error('Upload Error:', error);
+            console.error('[API Upload]', error.message);
             throw error;
         }
     },
+
 
     // AUTH
     auth: {
