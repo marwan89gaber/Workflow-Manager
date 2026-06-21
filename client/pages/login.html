@@ -113,14 +113,13 @@
 
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            
+
+            // Store email BEFORE anything happens
             const email = document.getElementById('email').value.trim();
             const password = document.getElementById('password').value;
 
-            // Hide previous error
             errorMessage.classList.remove('show');
 
-            // Validate
             if (!Utils.isValidEmail(email)) {
                 showError('Please enter a valid email address');
                 return;
@@ -131,26 +130,37 @@
                 return;
             }
 
-            // Disable button
             loginBtn.disabled = true;
             loginBtn.textContent = 'Signing in...';
 
+            // Run login AND a minimum delay in parallel
+            // Error will never show in less than 1 second — feels natural, prevents timing attacks
+            const minDelay = new Promise(resolve => setTimeout(resolve, 1000));
+
             try {
-                const response = await API.auth.login(email, password);
-                
+                const [response] = await Promise.all([
+                    API.auth.login(email, password),
+                    minDelay
+                ]);
+
                 if (response.success && response.user) {
                     Auth.setUser(response.user);
-                    Utils.showToast('Login successful!', 'success');
+                    loginBtn.textContent = '✓ Success';
                     setTimeout(() => {
                         window.location.href = 'dashboard.html';
-                    }, 500);
+                    }, 400);
                 } else {
                     showError(response.message || 'Login failed');
+                    // Restore email, wipe only password
+                    document.getElementById('email').value = email;
+                    document.getElementById('password').value = '';
                     loginBtn.disabled = false;
                     loginBtn.textContent = 'Sign In';
                 }
             } catch (error) {
                 showError(error.message || 'Login failed. Please try again.');
+                document.getElementById('email').value = email;
+                document.getElementById('password').value = '';
                 loginBtn.disabled = false;
                 loginBtn.textContent = 'Sign In';
             }

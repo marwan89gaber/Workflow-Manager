@@ -2,63 +2,56 @@
 // js/tasks.js - Tasks Page Logic
 // ==========================================
 
-let allTasks = [];
+let allTasks      = [];
 let filteredTasks = [];
-let currentTask = null;
+let currentTask   = null;
 
 async function initTasks() {
     await Components.initLayout();
-    
+
     const content = document.getElementById('mainContent');
+    const isManager = Auth.isManagerOrAdmin();
+
     content.innerHTML = `
-        <div class="page-header" style="margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: center;">
+        <div class="page-header" style="margin-bottom:2rem;display:flex;justify-content:space-between;align-items:center;">
             <div>
-                <h1>My Tasks</h1>
-                <p class="text-muted">Manage your assigned tasks</p>
+                <h1>${isManager ? 'All Tasks' : 'My Tasks'}</h1>
+                <p class="text-muted">${isManager ? 'Manage all project tasks' : 'Manage your assigned tasks'}</p>
             </div>
             <div class="view-switcher">
-                <a href="tasks.html" class="btn btn-primary">List View</a>
+                <a href="tasks.html"      class="btn btn-primary">List View</a>
                 <a href="task-board.html" class="btn btn-secondary">Board View</a>
             </div>
         </div>
 
-        <!-- Filters -->
         <div class="card">
             <div class="filters">
-                <input 
-                    type="text" 
-                    class="form-control" 
-                    placeholder="Search tasks..." 
-                    id="searchInput"
-                    style="max-width: 300px;"
-                    oninput="filterTasks()"
-                >
-                <select class="form-control" id="statusFilter" onchange="filterTasks()" style="max-width: 200px;">
+                <input type="text" class="form-control" placeholder="Search tasks..."
+                    id="searchInput" style="max-width:300px;" oninput="filterTasks()">
+                <select class="form-control" id="statusFilter" onchange="filterTasks()" style="max-width:200px;">
                     <option value="">All Statuses</option>
                     <option value="todo">To Do</option>
                     <option value="in_progress">In Progress</option>
-                    <option value="in_review">In Review</option>
+                    <option value="in_review">${isManager ? 'To Review' : 'In Review'}</option>
                     <option value="done">Done</option>
                 </select>
-                <select class="form-control" id="priorityFilter" onchange="filterTasks()" style="max-width: 200px;">
+                <select class="form-control" id="priorityFilter" onchange="filterTasks()" style="max-width:200px;">
                     <option value="">All Priorities</option>
                     <option value="low">Low</option>
                     <option value="medium">Medium</option>
                     <option value="high">High</option>
                     <option value="critical">Critical</option>
                 </select>
-                <button class="btn btn-secondary" onclick="showOverdueTasks()">Show Overdue</button>
+                ${!isManager ? `<button class="btn btn-secondary" onclick="showOverdueTasks()">Show Overdue</button>` : ''}
             </div>
         </div>
 
-        <!-- Tasks Table -->
         <div class="card">
             <div id="tasksTable">
                 <div class="loading-spinner"><div class="spinner"></div></div>
             </div>
         </div>
 
-        <!-- Task Detail Modal -->
         <div id="taskDetailModal"></div>
     `;
 
@@ -68,9 +61,17 @@ async function initTasks() {
 async function loadTasks() {
     try {
         const user = Auth.getUser();
-        const tasks = await API.tasks.getByUser(user.user_id);
-        //console.log('📋 Loaded tasks for user:', user.user_id, 'Count:', tasks.length);
-        allTasks = tasks;
+        let tasks;
+
+        if (Auth.isManagerOrAdmin()) {
+            const resp = await API.tasks.getAll();
+            tasks = resp.data || resp || [];
+        } else {
+            const resp = await API.tasks.getByUser(user.user_id);
+            tasks = Array.isArray(resp) ? resp : (resp.data || []);
+        }
+
+        allTasks      = tasks;
         filteredTasks = tasks;
         renderTasks();
     } catch (error) {
@@ -80,43 +81,40 @@ async function loadTasks() {
 }
 
 function filterTasks() {
-    const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-    const statusFilter = document.getElementById('statusFilter').value;
+    const searchTerm    = document.getElementById('searchInput').value.toLowerCase();
+    const statusFilter  = document.getElementById('statusFilter').value;
     const priorityFilter = document.getElementById('priorityFilter').value;
 
     filteredTasks = allTasks.filter(task => {
-        const matchesSearch = !searchTerm || 
-            task.task_name.toLowerCase().includes(searchTerm) ||
-            (task.description && task.description.toLowerCase().includes(searchTerm));
-        
-        const matchesStatus = !statusFilter || task.status === statusFilter;
+        const matchesSearch   = !searchTerm || task.task_name.toLowerCase().includes(searchTerm) ||
+                                (task.description && task.description.toLowerCase().includes(searchTerm));
+        const matchesStatus   = !statusFilter   || task.status   === statusFilter;
         const matchesPriority = !priorityFilter || task.priority === priorityFilter;
-
         return matchesSearch && matchesStatus && matchesPriority;
     });
-
     renderTasks();
 }
 
 async function showOverdueTasks() {
     try {
-        const overdueTasks = await API.tasks.getOverdue();
-        filteredTasks = overdueTasks;
+        const resp = await API.tasks.getOverdue();
+        filteredTasks = resp.data || resp || [];
         renderTasks();
-        Utils.showToast(`Found ${overdueTasks.length} overdue tasks`, 'info');
+        Utils.showToast(`Found ${filteredTasks.length} overdue tasks`, 'info');
     } catch (error) {
         Utils.showToast('Failed to load overdue tasks', 'error');
     }
 }
 
 function renderTasks() {
-    const table = document.getElementById('tasksTable');
-    
-    if (filteredTasks.length === 0) {
+    const table     = document.getElementById('tasksTable');
+    const isManager = Auth.isManagerOrAdmin();
+
+    if (!filteredTasks.length) {
         table.innerHTML = `
-            <div class="empty-state" style="text-align: center; padding: 3rem;">
-                <div style="font-size: 4rem;">✓</div>
-                <p style="font-size: 1.125rem; color: var(--secondary);">No tasks found</p>
+            <div class="empty-state" style="text-align:center;padding:3rem;">
+                <div style="font-size:4rem;">✓</div>
+                <p style="font-size:1.125rem;color:var(--secondary);">No tasks found</p>
             </div>
         `;
         return;
@@ -131,24 +129,28 @@ function renderTasks() {
                     <th>Priority</th>
                     <th>Due Date</th>
                     <th>Project</th>
+                    ${isManager ? '<th>Assigned To</th>' : ''}
                     <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
                 ${filteredTasks.map(task => {
                     const isOverdue = Utils.isOverdue(task.due_date) && task.status !== 'done';
+                    const statusLabel = (isManager && task.status === 'in_review') ? 'To Review' :
+                                        Utils.snakeToTitle(task.status);
                     return `
                         <tr class="task-row" onclick="showTaskDetail(${task.task_id})">
                             <td>
                                 <strong>${Utils.escapeHtml(task.task_name)}</strong>
-                                ${isOverdue ? '<span style="color: var(--danger); margin-left: 0.5rem;">⚠️</span>' : ''}
+                                ${isOverdue ? '<span style="color:var(--danger);margin-left:0.5rem;">⚠️</span>' : ''}
                             </td>
                             <td>${Components.renderStatusBadge(task.status)}</td>
                             <td>${Components.renderPriorityBadge(task.priority)}</td>
-                            <td style="color: ${isOverdue ? 'var(--danger)' : 'inherit'};">
+                            <td style="color:${isOverdue ? 'var(--danger)' : 'inherit'};">
                                 ${Utils.formatDate(task.due_date)}
                             </td>
-                            <td>${Utils.escapeHtml(task.project_name || 'N/A')}</td>
+                            <td>${task.project_id || 'N/A'}</td>
+                            ${isManager ? `<td>${task.assigned_to || 'Unassigned'}</td>` : ''}
                             <td>
                                 <button class="btn btn-sm" onclick="event.stopPropagation(); updateTaskStatus(${task.task_id})">
                                     Update Status
@@ -164,47 +166,30 @@ function renderTasks() {
 
 async function showTaskDetail(taskId) {
     try {
-        console.log('🔍 Loading task details for ID:', taskId);
-        
-        // Load task
-        const taskResponse = await API.tasks.getById(taskId);
-        const task = taskResponse.data || taskResponse; 
-        console.log('✅ Task loaded:', task);
-        
-        // Load comments
-        const commentsResponse = await API.comments.getByTask(taskId);
-        const comments = commentsResponse.data || commentsResponse;
-        console.log('✅ Comments loaded:', comments);
-        console.log('🔍 Comments is array?', Array.isArray(comments));
-        console.log('🔍 Comments length:', comments?.length);
-        
-        // Load files
-        const filesResponse = await API.files.getByTask(taskId);
-        const files = filesResponse.data || filesResponse;
-        console.log('✅ Files loaded:', files);
-        console.log('🔍 Files is array?', Array.isArray(files));
-        console.log('🔍 Files length:', files?.length);
-        
-        currentTask = task;
+        const taskResp     = await API.tasks.getById(taskId);
+        const task         = taskResp.data || taskResp;
 
+        const commentsResp = await API.comments.getByTask(taskId);
+        const comments     = Array.isArray(commentsResp) ? commentsResp : (commentsResp.data || []);
+
+        const filesResp    = await API.files.getByTask(taskId);
+        const files        = Array.isArray(filesResp) ? filesResp : (filesResp.data || []);
+
+        currentTask = task;
         const modal = document.getElementById('taskDetailModal');
-        
-        // Ensure arrays are valid
-        const safeComments = Array.isArray(comments) ? comments : [];
-        const safeFiles = Array.isArray(files) ? files : [];
-        
-        console.log('✅ Safe comments:', safeComments.length);
-        console.log('✅ Safe files:', safeFiles.length);
-        
+
+        const isManager   = Auth.isManagerOrAdmin();
+        const statusLabel = (isManager && task.status === 'in_review') ? 'To Review' : Utils.snakeToTitle(task.status || '');
+
         modal.innerHTML = `
             <div class="modal show">
-                <div class="modal-content" style="max-width: 800px;">
+                <div class="modal-content" style="max-width:800px;">
                     <div class="modal-header">
-                        <h2>${Utils.escapeHtml(task.task_name)}</h2>
+                        <h2>${Utils.escapeHtml(task.task_name || '')}</h2>
                         <button class="modal-close" onclick="closeTaskDetail()">×</button>
                     </div>
-                    
-                    <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem;">
+
+                    <div style="display:flex;gap:1rem;margin-bottom:1.5rem;">
                         ${Components.renderStatusBadge(task.status)}
                         ${Components.renderPriorityBadge(task.priority)}
                     </div>
@@ -214,7 +199,7 @@ async function showTaskDetail(taskId) {
                         <p>${Utils.escapeHtml(task.description || 'No description')}</p>
                     </div>
 
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.5rem;">
                         <div>
                             <label class="form-label">Due Date</label>
                             <p>${Utils.formatDate(task.due_date)}</p>
@@ -225,56 +210,50 @@ async function showTaskDetail(taskId) {
                         </div>
                     </div>
 
-                    <!-- Comments Section -->
+                    <!-- Comments -->
                     <div class="form-group">
-                        <h3>Comments (${safeComments.length})</h3>
-                        <div id="commentsSection" style="max-height: 300px; overflow-y: auto; margin-bottom: 1rem;">
-                            ${safeComments.length === 0 ? '<p class="text-muted">No comments yet.</p>' :
-                                safeComments.map(comment => `
-                                    <div style="padding: 1rem; background: var(--light); border-radius: var(--radius-md); margin-bottom: 0.5rem;">
-                                        <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
-                                            <strong>${comment.first_name || 'Unknown'} ${comment.last_name || ''}</strong>
-                                            <span style="font-size: 0.875rem; color: var(--secondary);">
-                                                ${Utils.formatRelativeTime(comment.created_at)}
-                                            </span>
+                        <h3>Comments (${comments.length})</h3>
+                        <div id="commentsSection" style="max-height:300px;overflow-y:auto;margin-bottom:1rem;">
+                            ${comments.length === 0
+                              ? '<p class="text-muted">No comments yet.</p>'
+                              : comments.map(c => `
+                                    <div style="padding:1rem;background:var(--light);border-radius:var(--radius-md);margin-bottom:0.5rem;">
+                                        <div style="display:flex;justify-content:space-between;margin-bottom:0.5rem;">
+                                            <strong>${c.first_name || ''} ${c.last_name || ''}</strong>
+                                            <span style="font-size:0.875rem;color:var(--secondary);">${Utils.formatRelativeTime(c.created_at)}</span>
                                         </div>
-                                        <p style="margin: 0;">${Utils.escapeHtml(comment.comment_text)}</p>
+                                        <p style="margin:0;">${Utils.escapeHtml(c.comment_text)}</p>
                                     </div>
                                 `).join('')
                             }
                         </div>
                         <form onsubmit="addComment(event, ${taskId})">
-                            <div style="display: flex; gap: 0.5rem;">
-                                <input 
-                                    type="text" 
-                                    class="form-control" 
-                                    id="commentInput"
-                                    placeholder="Add a comment..."
-                                    required
-                                >
+                            <div style="display:flex;gap:0.5rem;">
+                                <input type="text" class="form-control" id="commentInput" placeholder="Add a comment..." required>
                                 <button type="submit" class="btn btn-primary">Send</button>
                             </div>
                         </form>
                     </div>
 
-                    <!-- Files Section -->
+                    <!-- Files -->
                     <div class="form-group">
-                        <h3>Attachments (${safeFiles.length})</h3>
-                        <div style="margin-bottom: 1rem;">
-                            ${safeFiles.length === 0 ? '<p class="text-muted">No files attached.</p>' :
-                                safeFiles.map(file => `
-                                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem; background: var(--light); border-radius: var(--radius-md); margin-bottom: 0.5rem;">
-                                        <span>${Utils.getFileIcon(file.file_type)} ${file.file_name}</span>
-                                        <div style="display: flex; gap: 0.5rem;">
-                                            <a href="${API.files.getDownloadUrl(file.file_id)}" class="btn btn-sm" download>Download</a>
-                                            <button class="btn btn-sm btn-danger" onclick="deleteFile(${file.file_id}, ${taskId})">Delete</button>
+                        <h3>Attachments (${files.length})</h3>
+                        <div style="margin-bottom:1rem;">
+                            ${files.length === 0
+                              ? '<p class="text-muted">No files attached.</p>'
+                              : files.map(f => `
+                                    <div style="display:flex;justify-content:space-between;align-items:center;padding:0.5rem;background:var(--light);border-radius:var(--radius-md);margin-bottom:0.5rem;">
+                                        <span>${Utils.getFileIcon(f.file_type || '')} ${f.file_name}</span>
+                                        <div style="display:flex;gap:0.5rem;">
+                                            <a href="${API.files.getDownloadUrl(f.file_id)}" class="btn btn-sm" download>Download</a>
+                                            <button class="btn btn-sm btn-danger" onclick="deleteFile(${f.file_id}, ${taskId})">Delete</button>
                                         </div>
                                     </div>
                                 `).join('')
                             }
                         </div>
                         <form onsubmit="uploadFile(event, ${taskId})">
-                            <div style="display: flex; gap: 0.5rem;">
+                            <div style="display:flex;gap:0.5rem;">
                                 <input type="file" class="form-control" id="fileInput" required>
                                 <button type="submit" class="btn btn-primary">Upload</button>
                             </div>
@@ -283,13 +262,8 @@ async function showTaskDetail(taskId) {
                 </div>
             </div>
         `;
-        
-        console.log('✅ Modal rendered successfully');
-        
     } catch (error) {
-        console.error('❌ Error loading task details:', error);
-        console.error('❌ Error message:', error.message);
-        console.error('❌ Error stack:', error.stack);
+        console.error('Error loading task details:', error);
         Utils.showToast('Failed to load task details: ' + error.message, 'error');
     }
 }
@@ -300,38 +274,12 @@ function closeTaskDetail() {
 }
 
 async function updateTaskStatus(taskId) {
+    const newStatus = prompt('Enter new status (todo, in_progress, in_review, done):');
+    if (!newStatus || !['todo', 'in_progress', 'in_review', 'done'].includes(newStatus)) return;
     try {
-        if (!Auth.isManagerOrAdmin()) {
-            const files = await API.files.getByTask(taskId);
-            const fileList = Array.isArray(files) ? files : (files?.data || []);
-
-            if (!fileList.length) {
-                Utils.showToast('Upload a file before submitting for review', 'warning');
-                return;
-            }
-
-            Utils.confirmAction(
-                'Submit this task for manager review?',
-                async () => {
-                    await API.tasks.updateStatus(taskId, 'in_review');
-                    Utils.showToast('Task submitted for review', 'success');
-                    await loadTasks();
-                }
-            );
-            return;
-        }
-
-        Utils.promptSelect('Update task status', [
-            { value: 'todo',        label: '📋 To Do' },
-            { value: 'in_progress', label: '🔄 In Progress' },
-            { value: 'in_review',   label: '👀 In Review' },
-            { value: 'done',        label: '✅ Done' }
-        ], async (newStatus) => {
-            await API.tasks.updateStatus(taskId, newStatus);
-            Utils.showToast('Task status updated', 'success');
-            await loadTasks();
-        });
-
+        await API.tasks.updateStatus(taskId, newStatus);
+        Utils.showToast('Task status updated', 'success');
+        await loadTasks();
     } catch (error) {
         Utils.showToast('Failed to update status', 'error');
     }
@@ -340,10 +288,8 @@ async function updateTaskStatus(taskId) {
 async function addComment(event, taskId) {
     event.preventDefault();
     const input = document.getElementById('commentInput');
-    const text = input.value.trim();
-
+    const text  = input.value.trim();
     if (!text) return;
-
     try {
         await API.comments.create(taskId, text);
         input.value = '';
@@ -357,10 +303,8 @@ async function addComment(event, taskId) {
 async function uploadFile(event, taskId) {
     event.preventDefault();
     const input = document.getElementById('fileInput');
-    const file = input.files[0];
-
+    const file  = input.files[0];
     if (!file || !Utils.isValidFile(file)) return;
-
     try {
         await API.files.upload(taskId, file);
         await showTaskDetail(taskId);
@@ -371,13 +315,12 @@ async function uploadFile(event, taskId) {
 }
 
 async function deleteFile(fileId, taskId) {
-    Utils.confirmAction('Are you sure you want to delete this file?', async () => {
-        try {
-            await API.files.delete(fileId);
-            await showTaskDetail(taskId);
-            Utils.showToast('File deleted', 'success');
-        } catch (error) {
-            Utils.showToast('Failed to delete file', 'error');
-        }
-    });
+    if (!confirm('Delete this file?')) return;
+    try {
+        await API.files.delete(fileId);
+        await showTaskDetail(taskId);
+        Utils.showToast('File deleted', 'success');
+    } catch (error) {
+        Utils.showToast('Failed to delete file', 'error');
+    }
 }

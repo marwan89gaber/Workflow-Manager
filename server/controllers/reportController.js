@@ -1,86 +1,100 @@
 const DbService = require('../dbService');
 
 class ReportController {
-    static async generateReport(req, res){
-        const { reportType, parameters } = req.body;
+
+    // POST - Generate new report
+    static async generateReport(req, res) {
+        const { report_type, start_date, end_date, project_id, user_id } = req.body;
+        const generated_by = req.user.user_id;
         const db = DbService.getDbServiceInstance();
         try {
-            const data = await db.createReport(reportType, { ...parameters, generated_by: req.user.user_id });
-            res.json({ success: true, data: data });
+            const data = await db.createReport(report_type, generated_by, start_date, end_date, project_id || null, user_id || null);
+            res.json({ success: true, data });
         } catch (err) {
             res.status(500).json({ success: false, error: err.message });
         }
-    }         // POST - Generate new report
-    static async getAllReports(req, res){
+    }
+
+    // GET - Get all reports
+    static async getAllReports(req, res) {
         const db = DbService.getDbServiceInstance();
         try {
             const data = await db.getAllReports();
-            res.json({ data: data });
+            res.json({ data });
         } catch (err) {
             res.status(500).json({ error: err.message });
         }
-    }          // GET - Get all reports
-    static async getReportById(req, res){
+    }
+
+    // GET - Get specific report
+    static async getReportById(req, res) {
         const { id } = req.params;
         const db = DbService.getDbServiceInstance();
         try {
             const report = await db.getReportById(id);
-            if (report) {
-                res.json({ data: report });
-            } else {
-                res.status(404).json({ error: 'Report not found' });
-            }
+            if (report) res.json({ data: report });
+            else res.status(404).json({ error: 'Report not found' });
         } catch (err) {
             res.status(500).json({ error: err.message });
         }
-    }          // GET - Get specific report
-    static async deleteReport(req, res){
+    }
+
+    // DELETE - Remove report
+    static async deleteReport(req, res) {
         const { id } = req.params;
         const db = DbService.getDbServiceInstance();
         try {
             const success = await db.deleteReportById(id);
-            res.json({ success: success });
+            res.json({ success });
         } catch (err) {
             res.status(500).json({ success: false, error: err.message });
         }
-    }           // DELETE - Remove report
-    static async getTeamPerformance(req, res){
+    }
+
+    // GET - Team performance stats
+    static async getTeamPerformance(req, res) {
         const db = DbService.getDbServiceInstance();
         try {
             const data = await db.getTeamPerformanceStats();
-            res.json({ data: data });
+            res.json({ data });
         } catch (err) {
             res.status(500).json({ error: err.message });
         }
-    }     // GET - Team performance stats
-    static async getProjectStatus(req, res){
+    }
+
+    // GET - Project status report
+    static async getProjectStatus(req, res) {
         const db = DbService.getDbServiceInstance();
         try {
             const data = await db.getProjectStatusReport();
-            res.json({ data: data });
+            res.json({ data });
         } catch (err) {
             res.status(500).json({ error: err.message });
         }
-    }       // GET - Project status report
-    static async getIndividualProductivity(req, res){
+    }
+
+    // GET - Individual productivity (own stats for employees, all for managers)
+    static async getIndividualProductivity(req, res) {
         const userId = req.user.user_id;
         const db = DbService.getDbServiceInstance();
         try {
             const data = await db.getUserProductivityStats(userId);
-            res.json({ data: data });
+            res.json({ data });
         } catch (err) {
             res.status(500).json({ error: err.message });
         }
-    } // GET - User productivity
-    static async getTaskCompletion(req, res){
+    }
+
+    // GET - Task completion stats
+    static async getTaskCompletion(req, res) {
         const db = DbService.getDbServiceInstance();
         try {
             const data = await db.getTaskCompletionStats();
-            res.json({ data: data });
+            res.json({ data });
         } catch (err) {
             res.status(500).json({ error: err.message });
         }
-    }      // GET - Task completion stats
+    }
 }
 
 module.exports = ReportController;
