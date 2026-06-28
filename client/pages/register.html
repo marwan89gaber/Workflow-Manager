@@ -6,286 +6,173 @@
     <title>Register - WorkFlow Manager</title>
     <link rel="stylesheet" href="../css/global.css">
     <style>
-        body {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            padding: 2rem 0;
-        }
+        body { display:flex; align-items:center; justify-content:center; min-height:100vh;
+               background:linear-gradient(135deg,#667eea 0%,#764ba2 100%); padding:2rem 0; }
+        .register-container { background:white; padding:2rem; border-radius:1rem;
+            box-shadow:0 20px 60px rgba(0,0,0,0.3); width:100%; max-width:520px; }
+        .register-header { text-align:center; margin-bottom:2rem; }
+        .register-header h1 { margin:0 0 0.5rem; color:var(--dark); }
+        .register-header p  { margin:0; color:var(--secondary); }
+        .form-row  { display:grid; grid-template-columns:1fr 1fr; gap:1rem; }
+        .form-footer { text-align:center; margin-top:1.5rem; }
+        .error-msg { background:#f8d7da; color:#721c24; padding:.75rem;
+                     border-radius:var(--radius-md); margin-bottom:1rem; display:none; }
+        .error-msg.show   { display:block; }
+        .success-msg { background:#d4edda; color:#155724; padding:.75rem;
+                       border-radius:var(--radius-md); margin-bottom:1rem; display:none; }
+        .success-msg.show { display:block; }
 
-        .register-container {
-            background: white;
-            padding: 2rem;
-            border-radius: 1rem;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            width: 100%;
-            max-width: 500px;
+        /* Eye button (same style as login) */
+        .pwd-wrap { position:relative; }
+        .pwd-wrap input { padding-right:3.2rem; }
+        .eye-toggle {
+            position:absolute; right:0.75rem; top:50%; transform:translateY(-50%);
+            background:none; border:none; cursor:pointer; padding:0;
+            width:28px; height:28px; display:flex; align-items:center; justify-content:center;
         }
+        .eye-toggle svg { transition:all 0.25s ease; }
+        .eye-toggle:hover svg { transform:scale(1.15); }
+        .eye-toggle .iris  { fill:#667eea; transition:all 0.25s ease; }
+        .eye-toggle.hidden .iris { fill:#aaa; }
+        .eye-toggle .slash { stroke:#aaa; stroke-width:2; stroke-linecap:round; transition:opacity 0.2s; opacity:0; }
+        .eye-toggle.hidden .slash { opacity:1; }
+        @keyframes blink { 0%,100%{transform:scaleY(1)} 50%{transform:scaleY(0.05)} }
+        .eye-toggle.just-opened .eye-shape { animation:blink 0.35s ease forwards; }
 
-        .register-header {
-            text-align: center;
-            margin-bottom: 2rem;
-        }
-
-        .register-header h1 {
-            margin: 0 0 0.5rem 0;
-            color: var(--dark);
-        }
-
-        .register-header p {
-            margin: 0;
-            color: var(--secondary);
-        }
-
-        .form-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 1rem;
-        }
-
-        .form-footer {
-            text-align: center;
-            margin-top: 1.5rem;
-        }
-
-        .error-message {
-            background: #f8d7da;
-            color: #721c24;
-            padding: 0.75rem;
-            border-radius: var(--radius-md);
-            margin-bottom: 1rem;
-            display: none;
-        }
-
-        .error-message.show {
-            display: block;
-        }
-
-        .success-message {
-            background: #d4edda;
-            color: #155724;
-            padding: 0.75rem;
-            border-radius: var(--radius-md);
-            margin-bottom: 1rem;
-            display: none;
-        }
-
-        .success-message.show {
-            display: block;
-        }
+        @media(max-width:480px){ .form-row{ grid-template-columns:1fr; } }
     </style>
 </head>
 <body>
-    <div class="register-container">
-        <div class="register-header">
-            <h1>Create Account</h1>
-            <p>Join WorkFlow Manager</p>
+<div class="register-container">
+    <div class="register-header"><h1>Create Account</h1><p>Join WorkFlow Manager</p></div>
+    <div class="error-msg"   id="errorMessage"></div>
+    <div class="success-msg" id="successMessage"></div>
+
+    <form id="registerForm">
+        <div class="form-row">
+            <div class="form-group"><label class="form-label">First Name</label>
+                <input type="text" id="firstName" class="form-control" placeholder="John" required></div>
+            <div class="form-group"><label class="form-label">Last Name</label>
+                <input type="text" id="lastName"  class="form-control" placeholder="Doe"  required></div>
+        </div>
+        <div class="form-group"><label class="form-label">Email Address</label>
+            <input type="email" id="email" class="form-control" placeholder="john.doe@company.com" required></div>
+
+        <div class="form-group">
+            <label class="form-label">Password</label>
+            <div class="pwd-wrap">
+                <input type="password" id="password" class="form-control" placeholder="Min. 6 characters" required>
+                <button type="button" class="eye-toggle hidden" id="eye1" onclick="toggleEye('password','eye1')" title="Show/hide">
+                    <svg class="eye-shape" viewBox="0 0 24 24" width="22" height="22" fill="none" style="overflow:visible;">
+                        <path d="M1 12C3.5 6 7.5 3 12 3s8.5 3 11 9c-2.5 6-6.5 9-11 9S3.5 18 1 12z"
+                              stroke="#667eea" stroke-width="1.8" fill="none"/>
+                        <circle class="iris" cx="12" cy="12" r="3.2"/>
+                        <circle cx="12" cy="12" r="1.4" fill="white"/>
+                        <line class="slash" x1="3" y1="3" x2="21" y2="21"/>
+                    </svg>
+                </button>
+            </div>
         </div>
 
-        <div class="error-message" id="errorMessage"></div>
-        <div class="success-message" id="successMessage"></div>
-
-        <form id="registerForm">
-            <div class="form-row">
-                <div class="form-group">
-                    <label class="form-label" for="firstName">First Name</label>
-                    <input 
-                        type="text" 
-                        id="firstName" 
-                        class="form-control" 
-                        placeholder="John"
-                        required
-                    >
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label" for="lastName">Last Name</label>
-                    <input 
-                        type="text" 
-                        id="lastName" 
-                        class="form-control" 
-                        placeholder="Doe"
-                        required
-                    >
-                </div>
+        <div class="form-group">
+            <label class="form-label">Confirm Password</label>
+            <div class="pwd-wrap">
+                <input type="password" id="confirmPassword" class="form-control" placeholder="Re-enter password" required>
+                <button type="button" class="eye-toggle hidden" id="eye2" onclick="toggleEye('confirmPassword','eye2')" title="Show/hide">
+                    <svg class="eye-shape" viewBox="0 0 24 24" width="22" height="22" fill="none" style="overflow:visible;">
+                        <path d="M1 12C3.5 6 7.5 3 12 3s8.5 3 11 9c-2.5 6-6.5 9-11 9S3.5 18 1 12z"
+                              stroke="#667eea" stroke-width="1.8" fill="none"/>
+                        <circle class="iris" cx="12" cy="12" r="3.2"/>
+                        <circle cx="12" cy="12" r="1.4" fill="white"/>
+                        <line class="slash" x1="3" y1="3" x2="21" y2="21"/>
+                    </svg>
+                </button>
             </div>
-
-            <div class="form-group">
-                <label class="form-label" for="email">Email Address</label>
-                <input 
-                    type="email" 
-                    id="email" 
-                    class="form-control" 
-                    placeholder="john.doe@company.com"
-                    required
-                >
-            </div>
-
-            <div class="form-group">
-                <label class="form-label" for="password">Password</label>
-                <input 
-                    type="password" 
-                    id="password" 
-                    class="form-control" 
-                    placeholder="Min. 6 characters"
-                    required
-                >
-            </div>
-
-            <div class="form-group">
-                <label class="form-label" for="confirmPassword">Confirm Password</label>
-                <input 
-                    type="password" 
-                    id="confirmPassword" 
-                    class="form-control" 
-                    placeholder="Re-enter password"
-                    required
-                >
-            </div>
-
-            <div class="form-row">
-                <div class="form-group">
-                    <label class="form-label" for="role">Role</label>
-                    <select id="role" class="form-control" required>
-                        <option value="">Select role</option>
-                        <option value="employee">Employee</option>
-                        <option value="manager">Manager</option>
-                        <option value="admin">Admin</option>
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label" for="department">Department</label>
-                    <input 
-                        type="text" 
-                        id="department" 
-                        class="form-control" 
-                        placeholder="Engineering"
-                    >
-                </div>
-            </div>
-
-            <div class="form-group">
-                <label class="form-label" for="phone">Phone Number (Optional)</label>
-                <input 
-                    type="tel" 
-                    id="phone" 
-                    class="form-control" 
-                    placeholder="+1234567890"
-                >
-            </div>
-
-            <button type="submit" class="btn btn-primary" style="width: 100%;" id="registerBtn">
-                Create Account
-            </button>
-        </form>
-
-        <div class="form-footer">
-            <p>Already have an account? <a href="login.html">Sign in here</a></p>
         </div>
-    </div>
 
-    <script src="../js/config.js"></script>
-    <script src="../js/auth.js"></script>
-    <script src="../js/api.js"></script>
-    <script src="../js/utils.js"></script>
-    <script>
-        // Redirect if already logged in
-        Auth.redirectIfAuthenticated();
+        <div class="form-row">
+            <div class="form-group"><label class="form-label">Role</label>
+                <select id="role" class="form-control" required>
+                    <option value="">Select role</option>
+                    <option value="employee">Employee</option>
+                    <option value="manager">Manager</option>
+                    <option value="admin">Admin</option>
+                </select>
+            </div>
+            <div class="form-group"><label class="form-label">Department</label>
+                <input type="text" id="department" class="form-control" placeholder="Engineering"></div>
+        </div>
+        <div class="form-group"><label class="form-label">Phone (optional)</label>
+            <input type="tel" id="phone" class="form-control" placeholder="+1234567890"></div>
 
-        const registerForm = document.getElementById('registerForm');
-        const errorMessage = document.getElementById('errorMessage');
-        const successMessage = document.getElementById('successMessage');
-        const registerBtn = document.getElementById('registerBtn');
+        <button type="submit" class="btn btn-primary" style="width:100%;" id="registerBtn">Create Account</button>
+    </form>
+    <div class="form-footer"><p>Already have an account? <a href="login.html">Sign in here</a></p></div>
+</div>
 
-        registerForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            // Get form values
-            const firstName = document.getElementById('firstName').value.trim();
-            const lastName = document.getElementById('lastName').value.trim();
-            const email = document.getElementById('email').value.trim();
-            const password = document.getElementById('password').value;
-            const confirmPassword = document.getElementById('confirmPassword').value;
-            const role = document.getElementById('role').value;
-            const department = document.getElementById('department').value.trim();
-            const phone = document.getElementById('phone').value.trim();
+<script src="../js/config.js"></script>
+<script src="../js/auth.js"></script>
+<script src="../js/api.js"></script>
+<script src="../js/utils.js"></script>
+<script>
+    Auth.redirectIfAuthenticated();
 
-            // Hide previous messages
-            errorMessage.classList.remove('show');
-            successMessage.classList.remove('show');
-
-            // Validate
-            if (!firstName || !lastName) {
-                showError('Please enter your full name');
-                return;
-            }
-
-            if (!Utils.isValidEmail(email)) {
-                showError('Please enter a valid email address');
-                return;
-            }
-
-            if (password.length < 6) {
-                showError('Password must be at least 6 characters');
-                return;
-            }
-
-            if (password !== confirmPassword) {
-                showError('Passwords do not match');
-                return;
-            }
-
-            if (!role) {
-                showError('Please select a role');
-                return;
-            }
-
-            // Disable button
-            registerBtn.disabled = true;
-            registerBtn.textContent = 'Creating account...';
-
-            try {
-                const userData = {
-                    first_name: firstName,
-                    last_name: lastName,
-                    email,
-                    password,
-                    role,
-                    department: department || null,
-                    phone: phone || null
-                };
-
-                const response = await API.auth.register(userData);
-                
-                if (response.success) {
-                    showSuccess('Account created successfully! Redirecting to login...');
-                    setTimeout(() => {
-                        window.location.href = 'login.html';
-                    }, 2000);
-                } else {
-                    showError(response.message || 'Registration failed');
-                    registerBtn.disabled = false;
-                    registerBtn.textContent = 'Create Account';
-                }
-            } catch (error) {
-                showError(error.message || 'Registration failed. Please try again.');
-                registerBtn.disabled = false;
-                registerBtn.textContent = 'Create Account';
-            }
-        });
-
-        function showError(message) {
-            errorMessage.textContent = message;
-            errorMessage.classList.add('show');
+    function toggleEye(inputId, btnId) {
+        const input  = document.getElementById(inputId);
+        const btn    = document.getElementById(btnId);
+        const hiding = input.type === 'text';
+        input.type   = hiding ? 'password' : 'text';
+        if (hiding) {
+            btn.classList.add('hidden');
+        } else {
+            btn.classList.remove('hidden');
+            btn.classList.add('just-opened');
+            setTimeout(() => btn.classList.remove('just-opened'), 400);
         }
+    }
 
-        function showSuccess(message) {
-            successMessage.textContent = message;
-            successMessage.classList.add('show');
-        }
-    </script>
+    const errEl  = document.getElementById('errorMessage');
+    const succEl = document.getElementById('successMessage');
+    const btn    = document.getElementById('registerBtn');
+
+    document.getElementById('registerForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        errEl.classList.remove('show'); succEl.classList.remove('show');
+
+        const firstName = document.getElementById('firstName').value.trim();
+        const lastName  = document.getElementById('lastName').value.trim();
+        const email     = document.getElementById('email').value.trim();
+        const password  = document.getElementById('password').value;
+        const confirm   = document.getElementById('confirmPassword').value;
+        const role      = document.getElementById('role').value;
+
+        if (!firstName||!lastName)       { showErr('Please enter your full name'); return; }
+        if (!Utils.isValidEmail(email))  { showErr('Please enter a valid email');  return; }
+        if (password.length < 6)         { showErr('Password must be ≥ 6 characters'); return; }
+        if (password !== confirm)        { showErr('Passwords do not match'); return; }
+        if (!role)                       { showErr('Please select a role'); return; }
+
+        btn.disabled = true; btn.textContent = 'Creating…';
+        try {
+            const resp = await API.auth.register({
+                first_name:  firstName,
+                last_name:   lastName,
+                email, password, role,
+                department: document.getElementById('department').value.trim() || null,
+                phone:      document.getElementById('phone').value.trim()      || null
+            });
+            if (resp.success) {
+                showSucc('Account created! Redirecting to login…');
+                setTimeout(() => window.location.href='login.html', 2000);
+            } else {
+                showErr(resp.message || 'Registration failed');
+            }
+        } catch(err) { showErr(err.message || 'Registration failed. Please try again.'); }
+        finally { btn.disabled=false; btn.textContent='Create Account'; }
+    });
+
+    function showErr(m)  { errEl.textContent=m;  errEl.classList.add('show'); }
+    function showSucc(m) { succEl.textContent=m; succEl.classList.add('show'); }
+</script>
 </body>
 </html>

@@ -1,5 +1,5 @@
 // ==========================================
-// js/notifications.js - Notifications Logic
+// js/notifications.js  — clickable, redirect, no delete/markread buttons
 // ==========================================
 
 let notifications  = [];
@@ -7,48 +7,35 @@ let showOnlyUnread = false;
 
 async function initNotifications() {
     await Components.initLayout();
-
     const content = document.getElementById('mainContent');
     content.innerHTML = `
         <div class="page-header" style="margin-bottom:2rem;display:flex;justify-content:space-between;align-items:center;">
             <div>
                 <h1>Notifications</h1>
-                <p class="text-muted">Stay updated with your activities</p>
+                <p class="text-muted">Click a notification to go directly to the related item</p>
             </div>
             <div style="display:flex;gap:0.5rem;">
-                <button class="btn btn-secondary" id="filterBtn" onclick="toggleUnreadFilter()">
-                    Show Unread
-                </button>
-                <button class="btn btn-primary" onclick="markAllAsRead()">
-                    Mark All as Read
-                </button>
+                <button class="btn btn-secondary" id="filterBtn" onclick="toggleUnreadFilter()">Show Unread</button>
+                <button class="btn btn-primary" onclick="markAllRead()">Mark All as Read</button>
             </div>
         </div>
-
-        <div class="card">
+        <div class="card" id="notifCard">
             <div id="notificationsList">
                 <div class="loading-spinner"><div class="spinner"></div></div>
             </div>
-        </div>
-    `;
-
+        </div>`;
     await loadNotifications();
-    startPolling();
+    setInterval(loadNotifications, CONFIG.POLL_INTERVAL_NOTIFICATIONS);
 }
 
 async function loadNotifications() {
     try {
-        let resp;
-        if (showOnlyUnread) {
-            resp = await API.notifications.getUnread();
-        } else {
-            resp = await API.notifications.getAll();
-        }
+        const resp    = showOnlyUnread
+            ? await API.notifications.getUnread()
+            : await API.notifications.getAll();
         notifications = resp.data || resp || [];
         renderNotifications();
-    } catch (error) {
-        console.error('Error loading notifications:', error);
-        Utils.showToast('Failed to load notifications', 'error');
+    } catch (e) {
         notifications = [];
         renderNotifications();
     }
@@ -57,63 +44,46 @@ async function loadNotifications() {
 function renderNotifications() {
     const list = document.getElementById('notificationsList');
     if (!list) return;
-
     if (!notifications.length) {
-        list.innerHTML = `
-            <div class="empty-state" style="text-align:center;padding:3rem;">
-                <div style="font-size:4rem;">🔔</div>
-                <p style="font-size:1.125rem;color:var(--secondary);">
-                    ${showOnlyUnread ? 'No unread notifications' : 'No notifications yet'}
-                </p>
-            </div>
-        `;
+        list.innerHTML = `<div style="text-align:center;padding:3rem;">
+            <div style="font-size:4rem;">🔔</div>
+            <p style="color:var(--secondary);">${showOnlyUnread?'No unread notifications':'No notifications yet'}</p></div>`;
         return;
     }
-
-    list.innerHTML = notifications.map(notif => `
-        <div class="notification-item ${!notif.is_read ? 'unread' : ''}" data-id="${notif.notification_id}">
+    list.innerHTML = notifications.map(n => `
+        <div class="notification-item ${!n.is_read?'unread':''}"
+             onclick="handleNotificationClick(${n.notification_id},'${n.related_type}',${n.related_id})"
+             style="cursor:pointer;${!n.is_read?'font-weight:600;border-left:3px solid var(--primary);':''}" title="Click to view">
             <div style="flex:1;">
-                <p style="margin:0 0 0.25rem 0;">${Utils.escapeHtml(notif.message)}</p>
-                <small style="color:var(--secondary);">${Utils.formatRelativeTime(notif.created_at)}</small>
+                <p style="margin:0 0 0.25rem 0;">${Utils.escapeHtml(n.message)}</p>
+                <small style="color:var(--secondary);">${Utils.formatRelativeTime(n.created_at)}</small>
             </div>
-            <div class="notification-actions">
-                ${!notif.is_read ? `
-                    <button class="btn btn-sm" onclick="markNotificationRead(${notif.notification_id})">Mark Read</button>
-                ` : ''}
-                <button class="btn btn-sm btn-danger" onclick="deleteNotification(${notif.notification_id})">Delete</button>
-            </div>
-        </div>
-    `).join('');
+            ${!n.is_read?`<span style="width:8px;height:8px;border-radius:50%;background:var(--primary);display:inline-block;margin-left:1rem;flex-shrink:0;align-self:center;"></span>`:''}
+        </div>`).join('');
 }
 
-async function markNotificationRead(notificationId) {
-    try {
-        await API.notifications.markAsRead(notificationId);
-        Utils.showToast('Notification marked as read', 'success');
-        await loadNotifications();
-    } catch (error) {
-        Utils.showToast('Failed to mark notification as read', 'error');
-    }
-}
+// Click handler: mark as read + navigate
+async function handleNotificationClick(notificationId, relatedType, relatedId) {
+    try { await API.notifications.markAsRead(notificationId); } catch(e) {}
 
-async function deleteNotification(notificationId) {
-    if (!confirm('Delete this notification?')) return;
-    try {
-        await API.notifications.delete(notificationId);
-        Utils.showToast('Notification deleted', 'success');
-        await loadNotifications();
-    } catch (error) {
-        Utils.showToast('Failed to delete notification', 'error');
-    }
-}
-
-async function markAllAsRead() {
-    try {
-        await API.notifications.markAllAsRead();
-        Utils.showToast('All notifications marked as read', 'success');
-        await loadNotifications();
-    } catch (error) {
-        Utils.showToast('Failed to mark all as read', 'error');
+    switch (relatedType) {
+        case 'task':
+            window.location.href = `tasks.html?modal=${relatedId}`;
+            break;
+        case 'comment':
+            // comment's related_id IS the comment_id, but we navigate to the task
+            // We'll just go to tasks with the comment_id as a hint — server has the task_id in task history
+            // Best effort: navigate to tasks with modal=relatedId (comment_id may differ from task_id)
+            window.location.href = `tasks.html?modal=${relatedId}`;
+            break;
+        case 'project':
+            window.location.href = `project-detail.html?id=${relatedId}`;
+            break;
+        case 'message':
+            window.location.href = 'chat.html';
+            break;
+        default:
+            window.location.href = 'dashboard.html';
     }
 }
 
@@ -124,8 +94,10 @@ async function toggleUnreadFilter() {
     await loadNotifications();
 }
 
-function startPolling() {
-    setInterval(async () => {
+async function markAllRead() {
+    try {
+        await API.notifications.markAllAsRead();
+        Utils.showToast('All marked as read', 'success');
         await loadNotifications();
-    }, CONFIG.POLL_INTERVAL_NOTIFICATIONS);
+    } catch(e) { Utils.showToast('Failed', 'error'); }
 }

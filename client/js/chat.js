@@ -1,26 +1,22 @@
 // ==========================================
-// js/chat.js - Chat/Messages Logic
+// js/chat.js — auto-open new conv + per-chat drafts
 // ==========================================
 
-let conversations     = [];
+let conversations      = [];
 let currentConversation = null;
-let messages          = [];
-let pollingInterval   = null;
-let allUsers          = [];
+let messages           = [];
+let pollingInterval    = null;
+let allUsers           = [];
+const chatDrafts       = {};   // { conversation_id: draft_text }
 
 async function initChat() {
     await Components.initLayout();
-
     const content = document.getElementById('mainContent');
     content.innerHTML = `
         <div class="page-header" style="margin-bottom:1.5rem;display:flex;justify-content:space-between;align-items:center;">
-            <div>
-                <h1>Messages</h1>
-                <p class="text-muted">Chat with your team</p>
-            </div>
+            <div><h1>Messages</h1><p class="text-muted">Chat with your team</p></div>
             <button class="btn btn-primary" onclick="showNewConversationModal()">+ New Conversation</button>
         </div>
-
         <div class="chat-container">
             <div class="conversations-panel">
                 <div class="conversations-header">Conversations</div>
@@ -31,7 +27,7 @@ async function initChat() {
             <div class="chat-panel">
                 <div class="chat-header" id="chatHeader">Select a conversation</div>
                 <div class="chat-messages" id="chatMessages">
-                    <div class="empty-state" style="text-align:center;padding:3rem;color:var(--secondary);">
+                    <div style="text-align:center;padding:3rem;color:var(--secondary);">
                         <div style="font-size:4rem;">💬</div>
                         <p>Select a conversation to start chatting</p>
                     </div>
@@ -39,153 +35,154 @@ async function initChat() {
                 <div class="chat-input" id="chatInput" style="display:none;">
                     <form onsubmit="sendMessage(event)">
                         <div style="display:flex;gap:0.5rem;">
-                            <input type="text" class="form-control" id="messageInput" placeholder="Type a message..." required>
+                            <input type="text" class="form-control" id="messageInput"
+                                   placeholder="Type a message…" required
+                                   oninput="saveDraftLive()"
+                                   autocomplete="off">
                             <button type="submit" class="btn btn-primary">Send</button>
                         </div>
                     </form>
                 </div>
             </div>
-        </div>
-    `;
+        </div>`;
 
-    // Pre-load users for the new-conversation modal
     try {
-        const usersResp = await API.users.getAll();
-        allUsers = usersResp.data || usersResp || [];
+        const r = await API.users.getAll();
+        allUsers = r.data || r || [];
     } catch(e) { allUsers = []; }
 
     await loadConversations();
     startPolling();
 }
 
-// ---- Helpers ----
+// ---- Draft Helpers ----
 
-function getConversationName(conv) {
-    if (conv.conversation_type === 'project_group') {
-        return conv.project_name
-            ? `${conv.project_name} — Group Chat`
-            : (conv.conversation_name || `Group Chat #${conv.conversation_id}`);
-    }
-    // Direct message: show the other person's name
-    if (conv.participant_names) return conv.participant_names;
-    return `Direct Message #${conv.conversation_id}`;
+function saveDraftLive() {
+    if (!currentConversation) return;
+    chatDrafts[currentConversation.conversation_id] = document.getElementById('messageInput')?.value || '';
 }
 
-// ---- Load & Render Conversations ----
+function persistDraft() {
+    if (!currentConversation) return;
+    chatDrafts[currentConversation.conversation_id] = document.getElementById('messageInput')?.value || '';
+}
+
+function restoreDraft(convId) {
+    const input = document.getElementById('messageInput');
+    if (input) input.value = chatDrafts[convId] || '';
+}
+
+// ---- Conversation name helper ----
+
+function getConvName(conv) {
+    if (conv.conversation_type === 'project_group')
+        return conv.project_name ? `${conv.project_name} — Group Chat` : (conv.conversation_name || `Group #${conv.conversation_id}`);
+    return conv.participant_names || `Direct Message #${conv.conversation_id}`;
+}
+
+// ---- Load & Render ----
 
 async function loadConversations() {
     try {
-        const resp   = await API.messages.getConversations();
-        conversations = resp.data || resp || [];
+        const r   = await API.messages.getConversations();
+        conversations = r.data || r || [];
         renderConversations();
-    } catch (error) {
-        console.error('Error loading conversations:', error);
-        Utils.showToast('Failed to load conversations', 'error');
-    }
+    } catch(e) { Utils.showToast('Failed to load conversations','error'); }
 }
 
 function renderConversations() {
     const list = document.getElementById('conversationsList');
     if (!list) return;
-
     if (!conversations.length) {
-        list.innerHTML = `<div style="padding:2rem;text-align:center;color:var(--secondary);"><p>No conversations yet</p></div>`;
+        list.innerHTML = '<div style="padding:2rem;text-align:center;color:var(--secondary);">No conversations yet</div>';
         return;
     }
-
     list.innerHTML = conversations.map(conv => {
-        const name    = getConversationName(conv);
         const isActive = currentConversation?.conversation_id === conv.conversation_id;
-        const unread  = conv.unread_count || 0;
+        const unread   = conv.unread_count || 0;
+        const name     = getConvName(conv);
         return `
-            <div class="conversation-item ${unread > 0 ? 'unread' : ''} ${isActive ? 'active' : ''}"
+            <div class="conversation-item ${unread?'unread':''} ${isActive?'active':''}"
                  onclick="selectConversation(${conv.conversation_id})">
-                <div style="display:flex;justify-content:space-between;margin-bottom:0.25rem;">
-                    <strong style="flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${Utils.escapeHtml(name)}</strong>
-                    ${unread > 0 ? `<span class="badge" style="background:var(--primary);color:white;padding:0.25rem 0.5rem;border-radius:12px;font-size:0.75rem;margin-left:0.5rem;">${unread}</span>` : ''}
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <strong style="flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:0.9rem;">
+                        ${Utils.escapeHtml(name)}</strong>
+                    ${unread?`<span style="background:var(--primary);color:white;border-radius:12px;padding:2px 7px;font-size:0.75rem;margin-left:4px;">${unread}</span>`:''}
                 </div>
-                <div style="font-size:0.875rem;color:var(--secondary);">
-                    ${Utils.capitalize(conv.conversation_type === 'project_group' ? 'Group' : 'Direct')}
+                <div style="font-size:0.8rem;color:var(--secondary);">
+                    ${conv.conversation_type==='project_group'?'Group':'Direct'}
+                    ${chatDrafts[conv.conversation_id]?` · <em style="color:var(--warning);">Draft</em>`:''}
                 </div>
-            </div>
-        `;
+            </div>`;
     }).join('');
 }
 
-// ---- Select & Render Messages ----
-
 async function selectConversation(conversationId) {
+    // Save draft of current conversation before switching
+    persistDraft();
+
     try {
         currentConversation = conversations.find(c => c.conversation_id === conversationId);
-        const resp = await API.messages.getMessages(conversationId);
-        messages   = resp.data || resp || [];
-
+        const r  = await API.messages.getMessages(conversationId);
+        messages = r.data || r || [];
         await API.messages.markAsRead(conversationId);
 
         renderConversations();
         renderMessages();
 
-        document.getElementById('chatInput').style.display  = 'block';
-        document.getElementById('chatHeader').textContent   = getConversationName(currentConversation);
+        document.getElementById('chatInput').style.display = 'block';
+        document.getElementById('chatHeader').textContent  = getConvName(currentConversation);
 
+        // Restore draft for this conversation
+        restoreDraft(conversationId);
         scrollToBottom();
-    } catch (error) {
-        console.error('Error loading messages:', error);
-        Utils.showToast('Failed to load messages', 'error');
-    }
+    } catch(e) { Utils.showToast('Failed to load messages','error'); }
 }
 
 function renderMessages() {
     const container  = document.getElementById('chatMessages');
     const currentUser = Auth.getUser();
-
     if (!messages.length) {
-        container.innerHTML = `<div class="empty-state" style="text-align:center;padding:3rem;color:var(--secondary);"><p>No messages yet. Start the conversation!</p></div>`;
+        container.innerHTML = '<div style="text-align:center;padding:3rem;color:var(--secondary);">No messages yet. Start the conversation!</div>';
         return;
     }
-
     container.innerHTML = messages.map(msg => {
         const isSent = msg.sender_id === currentUser.user_id;
         return `
-            <div class="message ${isSent ? 'sent' : 'received'}">
-                ${!isSent ? `<div style="font-weight:bold;margin-bottom:0.25rem;font-size:0.875rem;">${msg.first_name} ${msg.last_name}</div>` : ''}
+            <div class="message ${isSent?'sent':'received'}">
+                ${!isSent?`<div style="font-weight:bold;font-size:0.8rem;margin-bottom:0.2rem;">${msg.first_name} ${msg.last_name}</div>`:''}
                 <div>${Utils.escapeHtml(msg.message_text)}</div>
                 <div class="message-time">${Utils.formatRelativeTime(msg.sent_at)}</div>
-            </div>
-        `;
+            </div>`;
     }).join('');
 }
 
 async function sendMessage(event) {
     event.preventDefault();
     if (!currentConversation) return;
-
     const input = document.getElementById('messageInput');
     const text  = input.value.trim();
     if (!text) return;
-
     try {
         await API.messages.send(currentConversation.conversation_id, text);
+        // Clear draft after send
+        chatDrafts[currentConversation.conversation_id] = '';
         input.value = '';
         await selectConversation(currentConversation.conversation_id);
-    } catch (error) {
-        Utils.showToast('Failed to send message', 'error');
-    }
+    } catch(e) { Utils.showToast('Failed to send','error'); }
 }
 
 function scrollToBottom() {
-    const container = document.getElementById('chatMessages');
-    if (container) container.scrollTop = container.scrollHeight;
+    const c = document.getElementById('chatMessages');
+    if (c) c.scrollTop = c.scrollHeight;
 }
 
 // ---- New Conversation Modal ----
 
 function showNewConversationModal() {
-    const departments = [...new Set(allUsers.map(u => u.department).filter(Boolean))].sort();
-
+    const depts = [...new Set(allUsers.map(u=>u.department).filter(Boolean))].sort();
     const modal = document.createElement('div');
-    modal.className = 'modal show';
-    modal.id = 'newConvModal';
+    modal.className = 'modal show'; modal.id = 'newConvModal';
     modal.innerHTML = `
         <div class="modal-content" style="max-width:480px;">
             <div class="modal-header">
@@ -193,8 +190,8 @@ function showNewConversationModal() {
                 <button class="modal-close" onclick="document.getElementById('newConvModal').remove()">×</button>
             </div>
             <div class="form-group">
-                <label class="form-label">Conversation Type</label>
-                <select class="form-control" id="newConvType" onchange="updateNewConvFields()">
+                <label class="form-label">Type</label>
+                <select class="form-control" id="newConvType" onchange="renderConvFields()">
                     <option value="direct">Direct Message</option>
                     <option value="group">Group Chat</option>
                 </select>
@@ -204,144 +201,94 @@ function showNewConversationModal() {
                 <button class="btn btn-secondary" onclick="document.getElementById('newConvModal').remove()">Cancel</button>
                 <button class="btn btn-primary" onclick="createNewConversation()">Create</button>
             </div>
-        </div>
-    `;
+        </div>`;
     document.body.appendChild(modal);
-    updateNewConvFields();
+    renderConvFields();
 }
 
-function updateNewConvFields() {
-    const type   = document.getElementById('newConvType').value;
+function renderConvFields() {
+    const type  = document.getElementById('newConvType').value;
+    const depts = [...new Set(allUsers.map(u=>u.department).filter(Boolean))].sort();
     const fields = document.getElementById('newConvFields');
-    const departments = [...new Set(allUsers.map(u => u.department).filter(Boolean))].sort();
 
     if (type === 'direct') {
         fields.innerHTML = `
-            <div class="form-group">
-                <label class="form-label">Department</label>
+            <div class="form-group"><label class="form-label">Department</label>
                 <select class="form-control" id="dmDept" onchange="populateDmUsers()">
-                    <option value="">— All Departments —</option>
-                    ${departments.map(d => `<option value="${d}">${d}</option>`).join('')}
-                </select>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Select Employee / or enter ID directly</label>
-                <select class="form-control" id="dmUserSelect" onchange="syncDmUserId()">
+                    <option value="">— All —</option>
+                    ${depts.map(d=>`<option value="${d}">${d}</option>`).join('')}
+                </select></div>
+            <div class="form-group"><label class="form-label">Select Employee</label>
+                <select class="form-control" id="dmUserSel" onchange="syncDmId()">
                     <option value="">— choose from list —</option>
-                    ${allUsers.map(u => `<option value="${u.user_id}">${u.first_name} ${u.last_name} (${u.user_id})</option>`).join('')}
-                </select>
-            </div>
-            <div class="form-group">
-                <label class="form-label">User ID</label>
-                <input type="text" class="form-control" id="dmUserId" placeholder="e.g. ebj001" oninput="syncDmUserSelect()">
-            </div>
-        `;
+                    ${allUsers.map(u=>`<option value="${u.user_id}">${u.first_name} ${u.last_name} (${u.user_id})</option>`).join('')}
+                </select></div>
+            <div class="form-group"><label class="form-label">or type User ID</label>
+                <input type="text" class="form-control" id="dmUserId" placeholder="e.g. ebj001" oninput="syncDmSel()"></div>`;
     } else {
         fields.innerHTML = `
-            <div class="form-group">
-                <label class="form-label">Group Name</label>
-                <input type="text" class="form-control" id="groupName" placeholder="Enter group name" required>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Department</label>
-                <select class="form-control" id="groupDept" onchange="populateGroupUsers()">
-                    <option value="">— All Departments —</option>
-                    ${departments.map(d => `<option value="${d}">${d}</option>`).join('')}
-                </select>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Add Members (select or type IDs, comma-separated)</label>
-                <select class="form-control" id="groupUserSelect" onchange="addGroupUserFromSelect()">
+            <div class="form-group"><label class="form-label">Group Name *</label>
+                <input type="text" class="form-control" id="groupName" placeholder="e.g. Dev Team Alpha"></div>
+            <div class="form-group"><label class="form-label">Department</label>
+                <select class="form-control" id="grpDept" onchange="populateGrpUsers()">
+                    <option value="">— All —</option>
+                    ${depts.map(d=>`<option value="${d}">${d}</option>`).join('')}
+                </select></div>
+            <div class="form-group"><label class="form-label">Add Members</label>
+                <select class="form-control" id="grpUserSel" onchange="addGrpUser()">
                     <option value="">— add from list —</option>
-                    ${allUsers.map(u => `<option value="${u.user_id}">${u.first_name} ${u.last_name} (${u.user_id})</option>`).join('')}
-                </select>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Member IDs (comma-separated)</label>
-                <input type="text" class="form-control" id="groupUserIds" placeholder="e.g. ebj001, esa004">
-            </div>
-        `;
+                    ${allUsers.map(u=>`<option value="${u.user_id}">${u.first_name} ${u.last_name} (${u.user_id})</option>`).join('')}
+                </select></div>
+            <div class="form-group"><label class="form-label">Member IDs (comma-separated)</label>
+                <input type="text" class="form-control" id="grpUserIds" placeholder="e.g. ebj001, esa004"></div>`;
     }
 }
 
 function populateDmUsers() {
-    const dept  = document.getElementById('dmDept').value;
-    const sel   = document.getElementById('dmUserSelect');
-    const filtered = dept ? allUsers.filter(u => u.department === dept) : allUsers;
-    sel.innerHTML = `<option value="">— choose from list —</option>` +
-        filtered.map(u => `<option value="${u.user_id}">${u.first_name} ${u.last_name} (${u.user_id})</option>`).join('');
+    const dept = document.getElementById('dmDept').value;
+    const sel  = document.getElementById('dmUserSel');
+    const list = dept ? allUsers.filter(u=>u.department===dept) : allUsers;
+    sel.innerHTML = `<option value="">— choose —</option>`+list.map(u=>`<option value="${u.user_id}">${u.first_name} ${u.last_name} (${u.user_id})</option>`).join('');
 }
+function syncDmId()  { const v=document.getElementById('dmUserSel').value; if(v) document.getElementById('dmUserId').value=v; }
+function syncDmSel() { const v=document.getElementById('dmUserId').value.trim(); const s=document.getElementById('dmUserSel'); if(s) s.value=v||''; }
 
-function syncDmUserId() {
-    const val = document.getElementById('dmUserSelect').value;
-    if (val) document.getElementById('dmUserId').value = val;
+function populateGrpUsers() {
+    const dept = document.getElementById('grpDept').value;
+    const sel  = document.getElementById('grpUserSel');
+    const list = dept ? allUsers.filter(u=>u.department===dept) : allUsers;
+    sel.innerHTML = `<option value="">— add —</option>`+list.map(u=>`<option value="${u.user_id}">${u.first_name} ${u.last_name} (${u.user_id})</option>`).join('');
 }
-
-function syncDmUserSelect() {
-    const val  = document.getElementById('dmUserId').value.trim();
-    const sel  = document.getElementById('dmUserSelect');
-    const opt  = [...sel.options].find(o => o.value === val);
-    sel.value  = opt ? val : '';
-}
-
-function populateGroupUsers() {
-    const dept   = document.getElementById('groupDept').value;
-    const sel    = document.getElementById('groupUserSelect');
-    const filtered = dept ? allUsers.filter(u => u.department === dept) : allUsers;
-    sel.innerHTML = `<option value="">— add from list —</option>` +
-        filtered.map(u => `<option value="${u.user_id}">${u.first_name} ${u.last_name} (${u.user_id})</option>`).join('');
-}
-
-function addGroupUserFromSelect() {
-    const sel   = document.getElementById('groupUserSelect');
-    const val   = sel.value;
-    if (!val) return;
-    const input = document.getElementById('groupUserIds');
-    const ids   = input.value.split(',').map(s => s.trim()).filter(Boolean);
-    if (!ids.includes(val)) { ids.push(val); input.value = ids.join(', '); }
-    sel.value = '';
+function addGrpUser() {
+    const v = document.getElementById('grpUserSel').value; if (!v) return;
+    const inp = document.getElementById('grpUserIds');
+    const ids = inp.value.split(',').map(s=>s.trim()).filter(Boolean);
+    if (!ids.includes(v)) { ids.push(v); inp.value=ids.join(', '); }
+    document.getElementById('grpUserSel').value='';
 }
 
 async function createNewConversation() {
     const type = document.getElementById('newConvType').value;
-
+    let newConvId = null;
     try {
         if (type === 'direct') {
             const receiverId = document.getElementById('dmUserId').value.trim();
-            if (!receiverId) { Utils.showToast('Please enter a User ID', 'error'); return; }
-            await API.messages.createConversation({ conversation_type: 'direct', receiver_id: receiverId });
-
+            if (!receiverId) { Utils.showToast('Please enter a User ID','error'); return; }
+            const r  = await API.messages.createConversation({ conversation_type:'direct', receiver_id:receiverId });
+            newConvId = (r.data||r).conversation_id;
         } else {
-            const groupName = (document.getElementById('groupName')?.value || '').trim();
-            if (!groupName) { Utils.showToast('Please enter a group name', 'error'); return; }
-            const idsRaw = (document.getElementById('groupUserIds')?.value || '').split(',').map(s => s.trim()).filter(Boolean);
-            if (!idsRaw.length) { Utils.showToast('Please add at least one member', 'error'); return; }
-
-            // Create group conversation
-            const convResp = await API.messages.createConversation({ conversation_type: 'group', conversation_name: groupName });
-            const convData = convResp.data || convResp;
-            const convId   = convData.conversation_id;
-
-            // Add extra members via the messages API (workaround: send a first message to seed)
-            // Additional members — use a simple API approach
-            for (const uid of idsRaw) {
-                try {
-                    // Re-use createConversation to add participants isn't ideal,
-                    // but the backend createConversation adds sender + optional receiver.
-                    // For group, just add them by re-creating with each receiver_id (creates separate entries).
-                    // A proper solution would be a POST /messages/conversation/:id/participants endpoint.
-                    // For now we use a workaround: nothing — the backend adds creator automatically.
-                    // This is noted as a known limitation.
-                } catch(e) {}
-            }
+            const name = (document.getElementById('groupName')?.value||'').trim();
+            if (!name) { Utils.showToast('Please enter a group name','error'); return; }
+            const r  = await API.messages.createConversation({ conversation_type:'group', conversation_name:name });
+            newConvId = (r.data||r).conversation_id;
         }
-
-        Utils.showToast('Conversation created!', 'success');
+        Utils.showToast('Conversation created!','success');
         document.getElementById('newConvModal').remove();
+
+        // Auto-open the new conversation
         await loadConversations();
-    } catch (error) {
-        Utils.showToast('Failed to create conversation: ' + error.message, 'error');
-    }
+        if (newConvId) await selectConversation(newConvId);
+    } catch(e) { Utils.showToast('Failed: '+e.message,'error'); }
 }
 
 // ---- Polling ----
@@ -350,19 +297,13 @@ function startPolling() {
     pollingInterval = setInterval(async () => {
         if (currentConversation) {
             try {
-                const resp    = await API.messages.getMessages(currentConversation.conversation_id);
-                const newMsgs = resp.data || resp || [];
-                if (newMsgs.length !== messages.length) {
-                    messages = newMsgs;
-                    renderMessages();
-                    scrollToBottom();
-                }
+                const r = await API.messages.getMessages(currentConversation.conversation_id);
+                const nm = r.data || r || [];
+                if (nm.length !== messages.length) { messages=nm; renderMessages(); scrollToBottom(); }
             } catch(e) {}
         }
         await loadConversations();
     }, CONFIG.POLL_INTERVAL_MESSAGES);
 }
 
-window.addEventListener('beforeunload', () => {
-    if (pollingInterval) clearInterval(pollingInterval);
-});
+window.addEventListener('beforeunload', () => { if(pollingInterval) clearInterval(pollingInterval); });

@@ -5,39 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Reports - WorkFlow Manager</title>
     <link rel="stylesheet" href="../css/global.css">
-    <style>
-        .reports-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 1.5rem;
-            margin-bottom: 2rem;
-        }
-
-        .report-card {
-            cursor: pointer;
-            transition: var(--transition);
-        }
-
-        .report-card:hover {
-            transform: translateY(-4px);
-            box-shadow: var(--shadow-lg);
-        }
-
-        .report-icon {
-            font-size: 3rem;
-            margin-bottom: 1rem;
-        }
-
-        .chart-container {
-            height: 300px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: var(--light);
-            border-radius: var(--radius-md);
-            margin: 1rem 0;
-        }
-    </style>
+    <link rel="stylesheet" href="../css/reports.css">
+    <!-- Chart.js via CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 </head>
 <body>
     <div class="app-container"></div>

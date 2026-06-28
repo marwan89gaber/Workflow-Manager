@@ -6,170 +6,143 @@
     <title>Login - WorkFlow Manager</title>
     <link rel="stylesheet" href="../css/global.css">
     <style>
-        body {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        }
+        body { display:flex; align-items:center; justify-content:center; min-height:100vh;
+               background:linear-gradient(135deg,#667eea 0%,#764ba2 100%); }
+        .login-container { background:white; padding:2rem; border-radius:1rem;
+            box-shadow:0 20px 60px rgba(0,0,0,0.3); width:100%; max-width:420px; }
+        .login-header { text-align:center; margin-bottom:2rem; }
+        .login-header h1 { margin:0 0 0.5rem; color:var(--dark); }
+        .login-header p  { margin:0; color:var(--secondary); }
+        .form-footer { text-align:center; margin-top:1.5rem; }
+        .error-msg { background:#f8d7da; color:#721c24; padding:.75rem; border-radius:var(--radius-md);
+                     margin-bottom:1rem; display:none; }
+        .error-msg.show { display:block; }
 
-        .login-container {
-            background: white;
-            padding: 2rem;
-            border-radius: 1rem;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            width: 100%;
-            max-width: 400px;
+        /* ── Creative Eye Button ── */
+        .pwd-wrap { position:relative; }
+        .pwd-wrap input { padding-right:3.2rem; }
+        .eye-toggle {
+            position:absolute; right:0.75rem; top:50%; transform:translateY(-50%);
+            background:none; border:none; cursor:pointer; padding:0;
+            width:28px; height:28px; display:flex; align-items:center; justify-content:center;
         }
-
-        .login-header {
-            text-align: center;
-            margin-bottom: 2rem;
+        .eye-toggle svg { transition:all 0.25s ease; }
+        .eye-toggle:hover svg { transform:scale(1.15); }
+        .eye-toggle .iris {
+            fill:#667eea;
+            transition:all 0.25s ease;
         }
-
-        .login-header h1 {
-            margin: 0 0 0.5rem 0;
-            color: var(--dark);
+        .eye-toggle.hidden .iris { fill:#aaa; }
+        .eye-toggle .slash {
+            stroke:#aaa; stroke-width:2; stroke-linecap:round;
+            transition:opacity 0.2s ease;
+            opacity:0;
         }
-
-        .login-header p {
-            margin: 0;
-            color: var(--secondary);
+        .eye-toggle.hidden .slash { opacity:1; }
+        @keyframes blink {
+            0%,100% { transform:scaleY(1); }
+            50%      { transform:scaleY(0.05); }
         }
-
-        .form-footer {
-            text-align: center;
-            margin-top: 1.5rem;
-        }
-
-        .error-message {
-            background: #f8d7da;
-            color: #721c24;
-            padding: 0.75rem;
-            border-radius: var(--radius-md);
-            margin-bottom: 1rem;
-            display: none;
-        }
-
-        .error-message.show {
-            display: block;
-        }
+        .eye-toggle.just-opened .eye-shape { animation:blink 0.35s ease forwards; }
     </style>
 </head>
 <body>
-    <div class="login-container">
-        <div class="login-header">
-            <h1>WorkFlow Manager</h1>
-            <p>Sign in to your account</p>
-        </div>
-
-        <div class="error-message" id="errorMessage"></div>
-
-        <form id="loginForm">
-            <div class="form-group">
-                <label class="form-label" for="email">Email Address</label>
-                <input 
-                    type="email" 
-                    id="email" 
-                    class="form-control" 
-                    placeholder="your.email@company.com"
-                    required
-                >
-            </div>
-
-            <div class="form-group">
-                <label class="form-label" for="password">Password</label>
-                <input 
-                    type="password" 
-                    id="password" 
-                    class="form-control" 
-                    placeholder="Enter your password"
-                    required
-                >
-            </div>
-
-            <button type="submit" class="btn btn-primary" style="width: 100%;" id="loginBtn">
-                Sign In
-            </button>
-        </form>
-
-        <div class="form-footer">
-            <p>Don't have an account? <a href="register.html">Register here</a></p>
-        </div>
+<div class="login-container">
+    <div class="login-header">
+        <h1>WorkFlow Manager</h1>
+        <p>Sign in to your account</p>
     </div>
+    <div class="error-msg" id="errorMessage"></div>
 
-    <script src="../js/config.js"></script>
-    <script src="../js/auth.js"></script>
-    <script src="../js/api.js"></script>
-    <script src="../js/utils.js"></script>
-    <script>
-        // Redirect if already logged in
-        Auth.redirectIfAuthenticated();
+    <form id="loginForm">
+        <div class="form-group">
+            <label class="form-label">Email Address</label>
+            <input type="email" id="email" class="form-control" placeholder="your.email@company.com" required>
+        </div>
+        <div class="form-group">
+            <label class="form-label">Password</label>
+            <div class="pwd-wrap">
+                <input type="password" id="password" class="form-control" placeholder="Enter your password" required>
+                <button type="button" class="eye-toggle hidden" id="eyeBtn" onclick="toggleEye('password','eyeBtn')" title="Show / hide password">
+                    <svg class="eye-shape" viewBox="0 0 24 24" width="22" height="22" fill="none"
+                         xmlns="http://www.w3.org/2000/svg" style="overflow:visible;">
+                        <!-- outer eye -->
+                        <path d="M1 12C3.5 6 7.5 3 12 3s8.5 3 11 9c-2.5 6-6.5 9-11 9S3.5 18 1 12z"
+                              stroke="#667eea" stroke-width="1.8" fill="none"/>
+                        <!-- iris -->
+                        <circle class="iris" cx="12" cy="12" r="3.2"/>
+                        <!-- pupil -->
+                        <circle cx="12" cy="12" r="1.4" fill="white"/>
+                        <!-- slash (shown when hidden) -->
+                        <line class="slash" x1="3" y1="3" x2="21" y2="21"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <button type="submit" class="btn btn-primary" style="width:100%;" id="loginBtn">Sign In</button>
+    </form>
+    <div class="form-footer">
+        <p>Don't have an account? <a href="register.html">Register here</a></p>
+    </div>
+</div>
 
-        const loginForm = document.getElementById('loginForm');
-        const errorMessage = document.getElementById('errorMessage');
-        const loginBtn = document.getElementById('loginBtn');
+<script src="../js/config.js"></script>
+<script src="../js/auth.js"></script>
+<script src="../js/api.js"></script>
+<script src="../js/utils.js"></script>
+<script>
+    Auth.redirectIfAuthenticated();
 
-        loginForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
+    function toggleEye(inputId, btnId) {
+        const input = document.getElementById(inputId);
+        const btn   = document.getElementById(btnId);
+        const hiding = input.type === 'text';  // about to hide
+        input.type   = hiding ? 'password' : 'text';
 
-            // Store email BEFORE anything happens
-            const email = document.getElementById('email').value.trim();
-            const password = document.getElementById('password').value;
-
-            errorMessage.classList.remove('show');
-
-            if (!Utils.isValidEmail(email)) {
-                showError('Please enter a valid email address');
-                return;
-            }
-
-            if (password.length < 6) {
-                showError('Password must be at least 6 characters');
-                return;
-            }
-
-            loginBtn.disabled = true;
-            loginBtn.textContent = 'Signing in...';
-
-            // Run login AND a minimum delay in parallel
-            // Error will never show in less than 1 second — feels natural, prevents timing attacks
-            const minDelay = new Promise(resolve => setTimeout(resolve, 1000));
-
-            try {
-                const [response] = await Promise.all([
-                    API.auth.login(email, password),
-                    minDelay
-                ]);
-
-                if (response.success && response.user) {
-                    Auth.setUser(response.user);
-                    loginBtn.textContent = '✓ Success';
-                    setTimeout(() => {
-                        window.location.href = 'dashboard.html';
-                    }, 400);
-                } else {
-                    showError(response.message || 'Login failed');
-                    // Restore email, wipe only password
-                    document.getElementById('email').value = email;
-                    document.getElementById('password').value = '';
-                    loginBtn.disabled = false;
-                    loginBtn.textContent = 'Sign In';
-                }
-            } catch (error) {
-                showError(error.message || 'Login failed. Please try again.');
-                document.getElementById('email').value = email;
-                document.getElementById('password').value = '';
-                loginBtn.disabled = false;
-                loginBtn.textContent = 'Sign In';
-            }
-        });
-
-        function showError(message) {
-            errorMessage.textContent = message;
-            errorMessage.classList.add('show');
+        if (hiding) {
+            btn.classList.add('hidden');
+        } else {
+            btn.classList.remove('hidden');
+            // Brief blink animation on reveal
+            btn.classList.add('just-opened');
+            setTimeout(() => btn.classList.remove('just-opened'), 400);
         }
-    </script>
+    }
+
+    const loginForm  = document.getElementById('loginForm');
+    const errorMsg   = document.getElementById('errorMessage');
+    const loginBtn   = document.getElementById('loginBtn');
+
+    loginForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        errorMsg.classList.remove('show');
+        const email    = document.getElementById('email').value.trim();
+        const password = document.getElementById('password').value;
+
+        if (!Utils.isValidEmail(email)) { showError('Please enter a valid email address'); return; }
+        if (password.length < 6)        { showError('Password must be at least 6 characters'); return; }
+
+        loginBtn.disabled    = true;
+        loginBtn.textContent = 'Signing in…';
+        try {
+            const response = await API.auth.login(email, password);
+            if (response.success && response.token) {
+                Auth.setToken(response.token);
+                Auth.setUser(response.user);
+                Utils.showToast('Login successful!','success');
+                setTimeout(() => window.location.href='dashboard.html', 500);
+            } else {
+                showError(response.message || 'Login failed');
+            }
+        } catch(err) {
+            showError(err.message || 'Login failed. Please try again.');
+        } finally {
+            loginBtn.disabled    = false;
+            loginBtn.textContent = 'Sign In';
+        }
+    });
+
+    function showError(msg) { errorMsg.textContent=msg; errorMsg.classList.add('show'); }
+</script>
 </body>
 </html>

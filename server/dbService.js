@@ -624,6 +624,45 @@ class DbService {
         );
         return r[0];
     }
+    // Task Completion Detail Report (filterable by task, project, user, date)
+    async getTaskCompletionDetail(taskId, projectId, userId, startDate, endDate) {
+        const conditions = [];
+        const params     = [];
+
+        if (taskId)    { conditions.push('t.task_id = ?');     params.push(taskId); }
+        if (projectId) { conditions.push('t.project_id = ?'); params.push(projectId); }
+        if (userId)    { conditions.push('(t.assigned_to = ? OR t.created_by = ?)'); params.push(userId, userId); }
+        if (startDate) { conditions.push('t.created_at >= ?'); params.push(startDate + ' 00:00:00'); }
+        if (endDate)   { conditions.push('t.created_at <= ?'); params.push(endDate   + ' 23:59:59'); }
+
+        const where = conditions.length ? 'WHERE ' + conditions.join(' AND ') : '';
+
+        return this.query(
+            `SELECT t.*,
+                    p.project_name,
+                    u1.first_name AS assignee_first, u1.last_name AS assignee_last,
+                    u2.first_name AS creator_first,  u2.last_name AS creator_last
+             FROM tasks t
+             LEFT JOIN projects p  ON t.project_id  = p.project_id
+             LEFT JOIN users u1    ON t.assigned_to  = u1.user_id
+             LEFT JOIN users u2    ON t.created_by   = u2.user_id
+             ${where}
+             ORDER BY t.created_at DESC`,
+            params
+        );
+    }
+
+    // Get project group conversation ID
+    async getProjectGroupConversationId(project_id) {
+        const r = await this.query(
+            `SELECT conversation_id FROM conversations
+             WHERE conversation_type = 'project_group' AND project_id = ?
+             LIMIT 1`,
+            [project_id]
+        );
+        return r[0] ? r[0].conversation_id : null;
+    }
+
 }
 
 module.exports = DbService;
